@@ -4,6 +4,8 @@
 #include <algorithm>
 #include <string>
 #include <iomanip>
+#include <fstream>
+#include <fstream>
 #include <cassert>
 
 using namespace std;
@@ -33,6 +35,7 @@ class Work {
         /* Action executed when the work gets completed. */
         virtual void action() { }
         virtual string name() const = 0;
+        virtual unsigned int type() const = 0;
 };
 
 class SchedulerEvent {
@@ -59,6 +62,13 @@ class SchedulerEventGreater {
         }
 };
 
+struct Slice {
+    double duration;
+    unsigned int type;
+
+    Slice(double d, unsigned int t) : duration(d), type(t) { }
+};
+
 class Scheduler {
         /* What time a thread is going to be idle again. */
         double *next_idle_ts;
@@ -71,17 +81,23 @@ class Scheduler {
         /* Number of threads managed by this scheduler. */
         unsigned int nthreads;
 
+        list<Slice> *strips;
+
     public:
+        string *names;
 
         Scheduler(unsigned int n);
         void scheduleWork(unsigned int thread, Work *w);
         void run(double max_time);
+        void diagrams(const char *file);
         ~Scheduler();
 };
 
 Scheduler::Scheduler(unsigned int n) : t(0.0), nthreads(n)
 {
     next_idle_ts = new double[n];
+    names = new string[n];
+    strips = new list<Slice>[n];
 
     for (unsigned int i = 0; i < n; i++) {
         next_idle_ts[i] = 0.0;
@@ -90,7 +106,9 @@ Scheduler::Scheduler(unsigned int n) : t(0.0), nthreads(n)
 
 Scheduler::~Scheduler()
 {
-    delete next_idle_ts;
+    delete [] next_idle_ts;
+    delete [] names;
+    delete [] strips;
 }
 
 void Scheduler::scheduleWork(unsigned int thread, Work *w)
@@ -99,12 +117,17 @@ void Scheduler::scheduleWork(unsigned int thread, Work *w)
 
     assert(w && thread < nthreads);
 
+    if (next_idle_ts[thread] < t) {
+        strips[thread].push_back(Slice(t - next_idle_ts[thread], 0));
+    }
+
     begin_ts = std::max(next_idle_ts[thread], t);
     end_ts = begin_ts + w->delta;
     /* Schedule the events associated to the work begin and end. */
     eventq.push(SchedulerEvent(begin_ts, thread, false, w));
     eventq.push(SchedulerEvent(end_ts, thread, true, w));
     next_idle_ts[thread] = end_ts;
+    strips[thread].push_back(Slice(w->delta, w->type()));
 }
 
 void Scheduler::run(double max_time)
@@ -138,6 +161,75 @@ void Scheduler::run(double max_time)
     }
 }
 
+void cat(const char *in, ofstream& fout)
+{
+    ifstream fin(in);
+
+    if (fin.fail()) {
+        perror("cat()");
+        exit(EXIT_FAILURE);
+    }
+
+    for (;;) {
+        string s;
+
+        getline(fin, s);
+
+        if (fin.eof() || fin.fail() || fin.bad()) {
+            break;
+        }
+
+        fout << s << "\n";
+    }
+}
+
+void Scheduler::diagrams(const char *file)
+{
+    ifstream fin("template.js");
+    ofstream fout(file);
+
+    if (fin.fail()) {
+        perror("diagrams()");
+        exit(EXIT_FAILURE);
+    }
+
+    cat("template_head.html", fout);
+
+    for (;;) {
+        string s;
+
+        getline(fin, s);
+
+        if (fin.eof() || fin.fail() || fin.bad()) {
+            break;
+        }
+
+        if (s.find("//INSERTDATA") != string::npos) {
+            for (unsigned int i = 0; i < nthreads; i++) {
+                fout << "   durations[" << i << "] = [";
+                for (list<Slice>::iterator lit = strips[i].begin();
+                                            lit != strips[i].end(); lit++) {
+                    fout << lit->duration << ", ";
+                }
+                fout << "];\n";
+
+                fout << "   types[" << i << "] = [";
+                for (list<Slice>::iterator lit = strips[i].begin();
+                                            lit != strips[i].end(); lit++) {
+                    fout << lit->type << ", ";
+                }
+                fout << "];\n";
+
+                fout << "   names[" << i << "] = \"" << names[i] << "\";\n";
+            }
+        } else {
+            fout << s << "\n";
+        }
+    }
+
+    cat("template_tail.html", fout);
+}
+
 #define PROD_TH         0
 #define CONS_TH         1
 #define SP              3.0
@@ -147,6 +239,11 @@ void Scheduler::run(double max_time)
 #define NC              10.0
 #define WC              3.0
 #define QUEUE_LEN_MAX   256
+
+#define TNULL           0
+#define TSTART          1
+#define TNOTIFY         2
+#define TPROCESS        3
 
 class ProdConState : public State {
     public:
@@ -188,6 +285,7 @@ class ProducerStartWork : public Work {
                                         Work(SP, sched, state) { }
         virtual void action();
         virtual string name() const { return "ProducerStart"; }
+        virtual unsigned int type() const { return TSTART; }
 };
 
 class ProducerProcessWork : public Work {
@@ -196,6 +294,7 @@ class ProducerProcessWork : public Work {
                                         Work(WP, sched, state) { }
         virtual void action();
         virtual string name() const { return "ProducerProcess"; }
+        virtual unsigned int type() const { return TPROCESS; }
 };
 
 class ProducerNotifyWork : public Work {
@@ -204,6 +303,7 @@ class ProducerNotifyWork : public Work {
                                         Work(NP, sched, state) { }
         virtual void action();
         virtual string name() const { return "ProducerNotify"; }
+        virtual unsigned int type() const { return TNOTIFY; }
 };
 
 class ConsumerStartWork : public Work {
@@ -212,6 +312,7 @@ class ConsumerStartWork : public Work {
                                         Work(SC, sched, state) { }
         virtual void action();
         virtual string name() const { return "ConsumerStart"; }
+        virtual unsigned int type() const { return TSTART; }
 };
 
 class ConsumerProcessWork : public Work {
@@ -220,6 +321,7 @@ class ConsumerProcessWork : public Work {
                                         Work(WC, sched, state) { }
         virtual void action();
         virtual string name() const { return "ConsumerProcess"; }
+        virtual unsigned int type() const { return TPROCESS; }
 };
 
 class ConsumerNotifyWork : public Work {
@@ -228,6 +330,7 @@ class ConsumerNotifyWork : public Work {
                                         Work(NC, sched, state) { }
         virtual void action();
         virtual string name() const { return "ConsumerNotify"; }
+        virtual unsigned int type() const { return TNOTIFY; }
 };
 
 void ProducerStartWork::action()
@@ -307,12 +410,17 @@ int main()
     Scheduler sched(2);
     ProdConState *state = new ProdConState();
 
+    sched.names[PROD_TH] = "Producer";
+    sched.names[CONS_TH] = "Consumer";
+
     sched.scheduleWork(PROD_TH, new ProducerStartWork(&sched, state));
 
     sched.run(100 * WC);
 
     cout << "\n>>> Simulation completed\n";
     state->print();
+
+    sched.diagrams("output.html");
 
     return 0;
 }
