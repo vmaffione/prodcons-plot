@@ -7,8 +7,11 @@
 #include <fstream>
 #include <fstream>
 #include <cassert>
+#include <unistd.h>
+#include <cstring>
 
 using namespace std;
+
 
 
 class Scheduler;
@@ -84,6 +87,8 @@ class Scheduler {
 
         list<Slice> *strips;
 
+        bool verbose;
+
         void push_event(SchedulerEvent);
         SchedulerEvent pop_event();
 
@@ -91,15 +96,15 @@ class Scheduler {
         string *threadnames;
         string *typenames;
 
-        Scheduler(unsigned int nth, unsigned int nty);
+        Scheduler(unsigned int nth, unsigned int nty, bool vb);
         void scheduleWork(unsigned int thread, Work *w);
         void run(double max_time);
         void diagrams(const char *file);
         ~Scheduler();
 };
 
-Scheduler::Scheduler(unsigned int nth, unsigned int nty) :
-                                t(0.0), nthreads(nth), ntypes(nty)
+Scheduler::Scheduler(unsigned int nth, unsigned int nty, bool vb) :
+                        t(0.0), nthreads(nth), ntypes(nty), verbose(vb)
 {
     next_idle_ts = new double[nthreads];
     threadnames = new string[nthreads];
@@ -173,11 +178,13 @@ void Scheduler::run(double max_time)
         /* Advance the simulation time. */
         t = sw.ts;
 
-        cout << "t = " << t << ": " << sw.w->name() << " ";
-        if (sw.end) {
-            cout << "ends\n";
-        } else {
-            cout << "starts\n";
+        if (verbose) {
+            cout << "t = " << t << ": " << sw.w->name() << " ";
+            if (sw.end) {
+                cout << "ends\n";
+            } else {
+                cout << "starts\n";
+            }
         }
 
         if (sw.end) {
@@ -266,15 +273,18 @@ void Scheduler::diagrams(const char *file)
     cat("template_tail.html", fout);
 }
 
+
 #define PROD_TH         0
 #define CONS_TH         1
-#define SP              3.0
-#define NP              10.0
-#define WP              2.0
-#define SC              3.0
-#define NC              10.0
-#define WC              3.0
-#define QUEUE_LEN_MAX   256
+#define QUEUE_LEN_MAX   12
+static double SP = 3.0;
+static double NP = 4.0;
+static double WP = 10.0;
+static double SC = 3.0;
+static double NC = 4.0;
+static double WC = 13.0;
+
+static const char *outname = "output.html";
 
 #define TNULL           0
 #define TSTART          1
@@ -441,10 +451,85 @@ void ConsumerNotifyWork::action()
     sched->scheduleWork(PROD_TH, new ProducerStartWork(sched, state));
 }
 
-int main()
+static void help()
 {
-    Scheduler sched(2, 4);
+    cout << "   -s TICKS    --  Producer Start\n";
+    cout << "   -n TICKS    --  Producer Notify\n";
+    cout << "   -w TICKS    --  Producer Process\n";
+    cout << "   -S TICKS    --  Consumer Start\n";
+    cout << "   -N TICKS    --  Consumer Notify\n";
+    cout << "   -W TICKS    --  Consumer Process\n";
+    cout << "   -o FILENAME --  HTML output name\n";
+}
+
+static double safe_atof(char *optarg)
+{
+    int x = atoi(optarg);
+
+    if (x < 0) {
+        x *= -1;
+    }
+
+    return static_cast<double>(x);
+}
+
+static void parse_args(int argc, char **argv)
+{
+    int c;
+    int x;
+
+    while ((c = getopt(argc, argv, "s:n:w:S:N:W:")) != -1) {
+        switch (c) {
+            case 's':
+                SP = safe_atof(optarg);
+                break;
+
+            case 'n':
+                NP = safe_atof(optarg);
+                break;
+
+            case 'w':
+                WP = safe_atof(optarg);
+                break;
+
+            case 'S':
+                SC = safe_atof(optarg);
+                break;
+
+            case 'N':
+                NC = safe_atof(optarg);
+                break;
+
+            case 'W':
+                WC = safe_atof(optarg);
+                break;
+
+            case 'o':
+                outname = strdup(optarg);
+                break;
+
+            default:
+                help();
+                exit(EXIT_FAILURE);
+        }
+    }
+
+    cout << "Parameters used:\n";
+    cout << "   SP = " << SP << "\n";
+    cout << "   NP = " << NP << "\n";
+    cout << "   WP = " << WP << "\n";
+    cout << "   SC = " << SC << "\n";
+    cout << "   NC = " << NC << "\n";
+    cout << "   WC = " << WC << "\n";
+}
+
+int main(int argc, char **argv)
+{
+    /* Two threads, four types, not verbose. */
+    Scheduler sched(2, 4, false);
     ProdConState *state = new ProdConState();
+
+    parse_args(argc, argv);
 
     sched.threadnames[PROD_TH] = "Producer";
     sched.threadnames[CONS_TH] = "Consumer";
@@ -461,7 +546,7 @@ int main()
     cout << "\n>>> Simulation completed\n";
     state->print();
 
-    sched.diagrams("output.html");
+    sched.diagrams(outname);
 
     return 0;
 }

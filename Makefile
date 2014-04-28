@@ -1,5 +1,5 @@
 CC=g++
 
-all: main
+all: prodcon
 
-main: main.o
+prodcon: prodcon.o

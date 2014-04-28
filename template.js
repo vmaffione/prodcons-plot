@@ -196,7 +196,7 @@ function Game(gl)
         /* Draw hints. */
         ctx.fillStyle = make_rgb(0, 0, 0);
         ctx.font = "italic 12px Arial";
-        txt = "Muovi le frecce per scorrere il tempo";
+        txt = "Muovi le frecce laterali per scorrere il tempo";
         txt_width = ctx.measureText(txt).width;
         ctx.fillText(txt, (this.gl.W - txt_width)/2, this.gl.H - 5);
     }
@@ -255,7 +255,7 @@ function Strip(gm, name, scale, x, y, slicevec_d, slicevec_t)
 function Slice(gm, x, y, w, type)
 {
     this.gm = gm;
-    this.x = x;
+    this.x = this.maxx = x;
     this.y = y;
     this.w = w;
     this.step = 7;
@@ -279,20 +279,21 @@ function Slice(gm, x, y, w, type)
     function move()
     {
         /* Update the center position. */
-/*
-        if (this.gm.gl.keys_state[37] && this.cx > 0) {
-            this.cx -= this.step;
+        if (this.gm.gl.keys_state[37]) {
+            this.x += this.step;
+            if (this.x > this.maxx) {
+                this.x = this.maxx;
+            }
         }
-        if (this.gm.gl.keys_state[38] && this.cy > 0) {
-            this.cy -= this.step;
+        if (0 && this.gm.gl.keys_state[38] && this.y > 0) {
+            this.y -= this.step;
         }
-        if (this.gm.gl.keys_state[39] && this.cx < this.gm.gl.W) {
-            this.cx += this.step;
+        if (this.gm.gl.keys_state[39]) {
+            this.x -= this.step;
         }
-        if (this.gm.gl.keys_state[40] && this.cy < this.gm.gl.H) {
-            this.cy += this.step;
+        if (0 && this.gm.gl.keys_state[40] && this.y < this.gm.gl.H) {
+            this.y += this.step;
         }
-*/
     }
 }
 
