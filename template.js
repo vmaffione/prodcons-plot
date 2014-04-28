@@ -118,25 +118,29 @@ function Game(gl)
 
     durations = new Array();
     types = new Array();
-    names = new Array();
+    threadnames = new Array();
 
     //INSERTDATA
-/*
-    durations[0] = [4, 2, 6, 2, 2];
-    types[0] = [1, 2, 3, 2, 2];
-    names[0] = "Producer";
 
-    durations[1] = [6, 4, 3, 3];
-    types[1] = [0, 1, 2, 2];
-    names[1] = "Consumer";
-*/
+    if (0) {
+        /* Example of data. */
+        durations[0] = [4, 2, 6, 2, 2];
+        types[0] = [1, 2, 3, 2, 2];
+        threadnames[0] = "Producer";
+
+        durations[1] = [6, 4, 3, 3];
+        types[1] = [0, 1, 2, 2];
+        threadnames[1] = "Consumer";
+
+        this.typenames = ["Null", "Start", "Notify", "Process"];
+    }
 
     scale = compute_scaling(this.gl.W/2, durations[0]);
 
     /* Array of strips. Each strip represent a task. */
     this.strips = new Array();
     for (var i = 0; i < durations.length; i++) {
-        this.strips[i] = new Strip(this, names[i], scale, 20, y,
+        this.strips[i] = new Strip(this, threadnames[i], scale, 20, y,
                                     durations[i], types[i]);
         y += 40;
     }
@@ -165,6 +169,7 @@ function Game(gl)
     function draw()
     {
         var ctx = this.gl.canvas.getContext("2d");
+        var x;
 
         /* Draw the background */
         ctx.fillStyle = '#FFFFFF';
@@ -175,13 +180,18 @@ function Game(gl)
             this.strips[i].draw();
         }
 
-        /* Draw status info. */
-        txt = "Status 1: " + 342;
-        ctx.font = "16px Arial";
-        ctx.fillStyle = '#000000';
-        ctx.fillText(txt, 20, 30);
-        txt = "Status 2: " + this.gl.W;
-        ctx.fillText(txt, 20, 54);
+        x = 20;
+
+        for (var i = 0; i < this.typenames.length; i++) {
+            var w;
+            txt = this.typenames[i];
+            w = ctx.measureText(txt).width;
+            ctx.font = "16px Arial";
+            ctx.fillStyle = this.colors[i];
+            ctx.fillText(txt, x, 30);
+
+            x += w + 15;
+        }
 
         /* Draw hints. */
         ctx.fillStyle = make_rgb(0, 0, 0);

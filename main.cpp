@@ -74,32 +74,39 @@ class Scheduler {
         double *next_idle_ts;
         /* Current simulation time. */
         double t;
-        /* A queue containing the work to be scheduled, sorted in ascending work
-           completion time. */
-        priority_queue< SchedulerEvent, vector<SchedulerEvent>,
-                        SchedulerEventGreater > eventq;
+        /* A queue containing the work to be scheduled, sorted in ascending
+           work completion time. */
+        list<SchedulerEvent> eventq;
+
         /* Number of threads managed by this scheduler. */
         unsigned int nthreads;
+        unsigned int ntypes;
 
         list<Slice> *strips;
 
-    public:
-        string *names;
+        void push_event(SchedulerEvent);
+        SchedulerEvent pop_event();
 
-        Scheduler(unsigned int n);
+    public:
+        string *threadnames;
+        string *typenames;
+
+        Scheduler(unsigned int nth, unsigned int nty);
         void scheduleWork(unsigned int thread, Work *w);
         void run(double max_time);
         void diagrams(const char *file);
         ~Scheduler();
 };
 
-Scheduler::Scheduler(unsigned int n) : t(0.0), nthreads(n)
+Scheduler::Scheduler(unsigned int nth, unsigned int nty) :
+                                t(0.0), nthreads(nth), ntypes(nty)
 {
-    next_idle_ts = new double[n];
-    names = new string[n];
-    strips = new list<Slice>[n];
+    next_idle_ts = new double[nthreads];
+    threadnames = new string[nthreads];
+    typenames = new string[ntypes];
+    strips = new list<Slice>[nthreads];
 
-    for (unsigned int i = 0; i < n; i++) {
+    for (unsigned int i = 0; i < nthreads; i++) {
         next_idle_ts[i] = 0.0;
     }
 }
@@ -107,8 +114,31 @@ Scheduler::Scheduler(unsigned int n) : t(0.0), nthreads(n)
 Scheduler::~Scheduler()
 {
     delete [] next_idle_ts;
-    delete [] names;
+    delete [] threadnames;
+    delete [] typenames;
     delete [] strips;
+}
+
+void Scheduler::push_event(SchedulerEvent se)
+{
+    list<SchedulerEvent>::reverse_iterator lit = eventq.rbegin();
+    list<SchedulerEvent>::iterator nit;
+
+    while (lit != eventq.rend() && se.ts < lit->ts) {
+        lit++;
+    }
+
+    nit = lit.base();
+    eventq.insert(nit, se);
+}
+
+SchedulerEvent Scheduler::pop_event()
+{
+    SchedulerEvent se = eventq.front();
+
+    eventq.pop_front();
+
+    return se;
 }
 
 void Scheduler::scheduleWork(unsigned int thread, Work *w)
@@ -124,8 +154,8 @@ void Scheduler::scheduleWork(unsigned int thread, Work *w)
     begin_ts = std::max(next_idle_ts[thread], t);
     end_ts = begin_ts + w->delta;
     /* Schedule the events associated to the work begin and end. */
-    eventq.push(SchedulerEvent(begin_ts, thread, false, w));
-    eventq.push(SchedulerEvent(end_ts, thread, true, w));
+    push_event(SchedulerEvent(begin_ts, thread, false, w));
+    push_event(SchedulerEvent(end_ts, thread, true, w));
     next_idle_ts[thread] = end_ts;
     strips[thread].push_back(Slice(w->delta, w->type()));
 }
@@ -138,8 +168,7 @@ void Scheduler::run(double max_time)
     t = 0;
 
     while (!eventq.empty() && t <= max_time) {
-        sw = eventq.top();
-        eventq.pop();
+        sw = pop_event();
 
         /* Advance the simulation time. */
         t = sw.ts;
@@ -220,8 +249,15 @@ void Scheduler::diagrams(const char *file)
                 }
                 fout << "];\n";
 
-                fout << "   names[" << i << "] = \"" << names[i] << "\";\n";
+                fout << "   threadnames[" << i << "] = \"" << threadnames[i] << "\";\n";
             }
+
+            fout << "   this.typenames = [";
+            for (unsigned int i = 0; i < ntypes; i++) {
+                fout << "\"" << typenames[i] << "\", ";
+            }
+            fout << "];\n";
+
         } else {
             fout << s << "\n";
         }
@@ -350,14 +386,14 @@ void ProducerProcessWork::action()
     st->prod_proc++;
     st->queue_len++;
 
+    if (st->cons_idle) {
+        sched->scheduleWork(PROD_TH, new ProducerNotifyWork(sched, state));
+    }
+
     if (st->queue_len < QUEUE_LEN_MAX) {
         sched->scheduleWork(PROD_TH, new ProducerProcessWork(sched, state));
     } else {
         st->prod_idle = true;
-    }
-
-    if (st->cons_idle) {
-        sched->scheduleWork(PROD_TH, new ProducerNotifyWork(sched, state));
     }
 }
 
@@ -386,14 +422,14 @@ void ConsumerProcessWork::action()
     st->cons_proc++;
     st->queue_len--;
 
+    if (st->prod_idle) {
+        sched->scheduleWork(CONS_TH, new ConsumerNotifyWork(sched, state));
+    }
+
     if (st->queue_len) {
         sched->scheduleWork(CONS_TH, new ConsumerProcessWork(sched, state));
     } else {
         st->cons_idle = true;
-    }
-
-    if (st->prod_idle) {
-        sched->scheduleWork(CONS_TH, new ConsumerNotifyWork(sched, state));
     }
 }
 
@@ -407,11 +443,16 @@ void ConsumerNotifyWork::action()
 
 int main()
 {
-    Scheduler sched(2);
+    Scheduler sched(2, 4);
     ProdConState *state = new ProdConState();
 
-    sched.names[PROD_TH] = "Producer";
-    sched.names[CONS_TH] = "Consumer";
+    sched.threadnames[PROD_TH] = "Producer";
+    sched.threadnames[CONS_TH] = "Consumer";
+
+    sched.typenames[TNULL] = "Null";
+    sched.typenames[TSTART] = "Start";
+    sched.typenames[TNOTIFY] = "Notify";
+    sched.typenames[TPROCESS] = "Process";
 
     sched.scheduleWork(PROD_TH, new ProducerStartWork(&sched, state));
 
