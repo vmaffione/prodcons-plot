@@ -462,7 +462,7 @@ static void help()
     cout << "   -S TICKS    --  Consumer Start\n";
     cout << "   -N TICKS    --  Consumer Notify\n";
     cout << "   -W TICKS    --  Consumer Process\n";
-    cout << "   -T NUM      --  Simulation length = NUM * WP\n";
+    cout << "   -T NUM      --  Simulation length = NUM * WC\n";
     cout << "   -L NUM      --  Queue length\n";
     cout << "   -o FILENAME --  HTML output name\n";
 }
@@ -567,14 +567,14 @@ int main(int argc, char **argv)
     sched.scheduleWork(PROD_TH, new ProducerStartWork(&sched, state));
 
     /* Run the simulation. */
-    sched.run(T * WP);
+    sched.run(T * WC);
 
     /* Print some statistics. */
     state->print();
 
     /* Print the simulation result. */
     if (state->cons_proc) {
-        result = T * WP / state->cons_proc;
+        result = T * WC / state->cons_proc;
     }
     cout << "Average-time-per-slot = " << result << "\n";
 
