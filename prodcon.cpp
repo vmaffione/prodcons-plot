@@ -283,6 +283,7 @@ static double WP = 10.0;
 static double SC = 3.0;
 static double NC = 4.0;
 static double WC = 13.0;
+static double L  = 100.0;
 
 static const char *outname = "output.html";
 
@@ -453,12 +454,14 @@ void ConsumerNotifyWork::action()
 
 static void help()
 {
+    cout << "Options:\n";
     cout << "   -s TICKS    --  Producer Start\n";
     cout << "   -n TICKS    --  Producer Notify\n";
     cout << "   -w TICKS    --  Producer Process\n";
     cout << "   -S TICKS    --  Consumer Start\n";
     cout << "   -N TICKS    --  Consumer Notify\n";
     cout << "   -W TICKS    --  Consumer Process\n";
+    cout << "   -L NUM      --  Simulation length = NUM * WP\n";
     cout << "   -o FILENAME --  HTML output name\n";
 }
 
@@ -478,7 +481,7 @@ static void parse_args(int argc, char **argv)
     int c;
     int x;
 
-    while ((c = getopt(argc, argv, "s:n:w:S:N:W:")) != -1) {
+    while ((c = getopt(argc, argv, "s:n:w:S:N:W:L:l:h")) != -1) {
         switch (c) {
             case 's':
                 SP = safe_atof(optarg);
@@ -504,9 +507,18 @@ static void parse_args(int argc, char **argv)
                 WC = safe_atof(optarg);
                 break;
 
+            case 'L':
+            case 'l':
+                L = safe_atof(optarg);
+                break;
+
             case 'o':
                 outname = strdup(optarg);
                 break;
+
+            case 'h':
+                help();
+                exit(EXIT_SUCCESS);
 
             default:
                 help();
@@ -521,6 +533,7 @@ static void parse_args(int argc, char **argv)
     cout << "   SC = " << SC << "\n";
     cout << "   NC = " << NC << "\n";
     cout << "   WC = " << WC << "\n";
+    cout << "   L  = " << L  << "\n";
 }
 
 int main(int argc, char **argv)
@@ -541,7 +554,7 @@ int main(int argc, char **argv)
 
     sched.scheduleWork(PROD_TH, new ProducerStartWork(&sched, state));
 
-    sched.run(100 * WC);
+    sched.run(L * WP);
 
     cout << "\n>>> Simulation completed\n";
     state->print();

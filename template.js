@@ -98,10 +98,10 @@ function compute_scaling(avail, vec)
     while (ratio * min < 5) {
         ratio *= 1.2;
     }
-/*
+
     while (ratio * min > 100) {
         ratio /= 1.2;
-    }*/
+    }
 
     return ratio;
 }
