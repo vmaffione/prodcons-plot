@@ -276,14 +276,14 @@ void Scheduler::diagrams(const char *file)
 
 #define PROD_TH         0
 #define CONS_TH         1
-#define QUEUE_LEN_MAX   12
+static double L  = 32;
 static double SP = 3.0;
 static double NP = 4.0;
 static double WP = 10.0;
 static double SC = 3.0;
 static double NC = 4.0;
 static double WC = 13.0;
-static double L  = 100.0;
+static double T  = 100.0;
 
 static const char *outname = "output.html";
 
@@ -385,7 +385,7 @@ void ProducerStartWork::action()
 {
     ProdConState *st = dynamic_cast<ProdConState *>(state);
 
-    if (st->queue_len < QUEUE_LEN_MAX) {
+    if (st->queue_len < L) {
         st->prod_idle = false;
         sched->scheduleWork(PROD_TH, new ProducerProcessWork(sched, state));
     }
@@ -402,7 +402,7 @@ void ProducerProcessWork::action()
         sched->scheduleWork(PROD_TH, new ProducerNotifyWork(sched, state));
     }
 
-    if (st->queue_len < QUEUE_LEN_MAX) {
+    if (st->queue_len < L) {
         sched->scheduleWork(PROD_TH, new ProducerProcessWork(sched, state));
     } else {
         st->prod_idle = true;
@@ -462,7 +462,8 @@ static void help()
     cout << "   -S TICKS    --  Consumer Start\n";
     cout << "   -N TICKS    --  Consumer Notify\n";
     cout << "   -W TICKS    --  Consumer Process\n";
-    cout << "   -L NUM      --  Simulation length = NUM * WP\n";
+    cout << "   -T NUM      --  Simulation length = NUM * WP\n";
+    cout << "   -L NUM      --  Queue length\n";
     cout << "   -o FILENAME --  HTML output name\n";
 }
 
@@ -470,8 +471,8 @@ static double safe_atof(char *optarg)
 {
     int x = atoi(optarg);
 
-    if (x < 0) {
-        x *= -1;
+    if (x < 1) {
+        x = 1;
     }
 
     return static_cast<double>(x);
@@ -482,7 +483,7 @@ static void parse_args(int argc, char **argv)
     int c;
     int x;
 
-    while ((c = getopt(argc, argv, "s:n:w:S:N:W:L:l:h")) != -1) {
+    while ((c = getopt(argc, argv, "s:n:w:S:N:W:T:t:L:l:h")) != -1) {
         switch (c) {
             case 's':
                 SP = safe_atof(optarg);
@@ -506,6 +507,11 @@ static void parse_args(int argc, char **argv)
 
             case 'W':
                 WC = safe_atof(optarg);
+                break;
+
+            case 'T':
+            case 't':
+                T = safe_atof(optarg);
                 break;
 
             case 'L':
@@ -535,6 +541,7 @@ static void parse_args(int argc, char **argv)
     cout << "   NC = " << NC << "\n";
     cout << "   WC = " << WC << "\n";
     cout << "   L  = " << L  << "\n";
+    cout << "   T  = " << T  << "\n";
 }
 
 int main(int argc, char **argv)
@@ -560,14 +567,14 @@ int main(int argc, char **argv)
     sched.scheduleWork(PROD_TH, new ProducerStartWork(&sched, state));
 
     /* Run the simulation. */
-    sched.run(L * WP);
+    sched.run(T * WP);
 
     /* Print some statistics. */
     state->print();
 
     /* Print the simulation result. */
     if (state->cons_proc) {
-        result = L * WP / state->cons_proc;
+        result = T * WP / state->cons_proc;
     }
     cout << "Average-time-per-slot = " << result << "\n";
 
