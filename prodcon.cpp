@@ -320,10 +320,11 @@ ProdConState::ProdConState()
 
 void ProdConState::print() const
 {
-    cout << "producer.processed     = " << prod_proc << "\n";
-    cout << "consumer.processed     = " << cons_proc << "\n";
-    cout << "producer.notifications = " << prod_ntfy << "\n";
-    cout << "consumer.notifications = " << cons_ntfy << "\n";
+    cout << "Statistics:\n";
+    cout << "   producer.processed     = " << prod_proc << "\n";
+    cout << "   consumer.processed     = " << cons_proc << "\n";
+    cout << "   producer.notifications = " << prod_ntfy << "\n";
+    cout << "   consumer.notifications = " << cons_ntfy << "\n";
 }
 
 class ProducerStartWork : public Work {
@@ -541,24 +542,36 @@ int main(int argc, char **argv)
     /* Two threads, four types, not verbose. */
     Scheduler sched(2, 4, false);
     ProdConState *state = new ProdConState();
+    double result = 0.0;
 
     parse_args(argc, argv);
 
+    /* Give names to the threads. */
     sched.threadnames[PROD_TH] = "Producer";
     sched.threadnames[CONS_TH] = "Consumer";
 
+    /* Give names to the work types. */
     sched.typenames[TNULL] = "Null";
     sched.typenames[TSTART] = "Start";
     sched.typenames[TNOTIFY] = "Notify";
     sched.typenames[TPROCESS] = "Process";
 
+    /* Schedule the initial work (kick the producer). */
     sched.scheduleWork(PROD_TH, new ProducerStartWork(&sched, state));
 
+    /* Run the simulation. */
     sched.run(L * WP);
 
-    cout << "\n>>> Simulation completed\n";
+    /* Print some statistics. */
     state->print();
 
+    /* Print the simulation result. */
+    if (state->cons_proc) {
+        result = L * WP / state->cons_proc;
+    }
+    cout << "Average-time-per-slot = " << result << "\n";
+
+    /* Produce HTML output. */
     sched.diagrams(outname);
 
     return 0;
