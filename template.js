@@ -1,5 +1,5 @@
 /*
-    An old-fashined 60 Hz game.
+    An old-fashioned 60 Hz game.
 
     Written by Vincenzo Maffione.
 */

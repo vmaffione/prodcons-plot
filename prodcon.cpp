@@ -465,6 +465,7 @@ static void help()
     cout << "   -T NUM      --  Simulation length = NUM * WC\n";
     cout << "   -L NUM      --  Queue length\n";
     cout << "   -o FILENAME --  HTML output name\n";
+    cout << "   -O          --  no HTML output file\n";
 }
 
 static double safe_atof(char *optarg)
@@ -483,7 +484,7 @@ static void parse_args(int argc, char **argv)
     int c;
     int x;
 
-    while ((c = getopt(argc, argv, "s:n:w:S:N:W:T:t:L:l:h")) != -1) {
+    while ((c = getopt(argc, argv, "s:n:w:S:N:W:T:t:L:l:Oh")) != -1) {
         switch (c) {
             case 's':
                 SP = safe_atof(optarg);
@@ -521,6 +522,10 @@ static void parse_args(int argc, char **argv)
 
             case 'o':
                 outname = strdup(optarg);
+                break;
+
+            case 'O':
+                outname = NULL;
                 break;
 
             case 'h':
@@ -579,7 +584,9 @@ int main(int argc, char **argv)
     cout << "Average-time-per-slot = " << result << "\n";
 
     /* Produce HTML output. */
-    sched.diagrams(outname);
+    if (outname) {
+        sched.diagrams(outname);
+    }
 
     return 0;
 }
