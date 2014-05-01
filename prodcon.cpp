@@ -480,7 +480,7 @@ static void parse_args(int argc, char **argv)
     int c;
     int x;
 
-    while ((c = getopt(argc, argv, "s:n:w:S:N:W:T:t:L:l:Oh")) != -1) {
+    while ((c = getopt(argc, argv, "s:n:w:S:N:W:T:t:L:l:o:Oh")) != -1) {
         switch (c) {
             case 's':
                 SP = safe_atof(optarg);
