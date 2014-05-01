@@ -221,15 +221,13 @@ void cat(const char *in, ofstream& fout)
 
 void Scheduler::diagrams(const char *file)
 {
-    ifstream fin("template.js");
+    ifstream fin("template.html");
     ofstream fout(file);
 
     if (fin.fail()) {
         perror("diagrams()");
         exit(EXIT_FAILURE);
     }
-
-    cat("template_head.html", fout);
 
     for (;;) {
         string s;
@@ -269,8 +267,6 @@ void Scheduler::diagrams(const char *file)
             fout << s << "\n";
         }
     }
-
-    cat("template_tail.html", fout);
 }
 
 

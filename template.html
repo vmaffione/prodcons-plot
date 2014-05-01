@@ -1,3 +1,9 @@
+<!doctype html>
+<html>
+
+    <head>
+        <title> ProdCon diagram </title>
+        <script type="text/javascript">
 /*
     An old-fashioned 60 Hz game.
 
@@ -316,3 +322,14 @@ function bodyKeyDown(e)
 {
     g.keys_state[e.keyCode] = true;
 }
+        </script>
+    </head>
+
+    <body onload="onload()" onkeyup="bodyKeyUp(event)"
+        onkeydown="bodyKeyDown(event)"
+      style='position: absolute; padding:0; margin:0; height: 90%;
+             width:90%'>
+        <canvas id="gameCanvas"></canvas>
+    </body>
+
+</html>
