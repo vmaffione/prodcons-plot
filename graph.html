@@ -1,0 +1,139 @@
+<!doctype html>
+<html>
+
+    <head>
+        <title> ProdCon plots </title>
+        <script type="text/javascript" src="https://www.google.com/jsapi"></script>
+        <script type="text/javascript">
+
+// An object containing all the "global" variables.
+var g;
+
+// Load the Visualization API and the piechart package.
+google.load('visualization', '1', {'packages':['corechart']});
+
+// Set a callback to run when the Google Visualization API is loaded.
+google.setOnLoadCallback(drawChart);
+
+function resize(x)
+{
+    x.W = x.chartdiv.width = x.chartdiv.parentNode.clientWidth;
+    x.H = x.chartdiv.height = x.chartdiv.parentNode.clientHeight;
+    x.cx = x.W/2;
+    x.cy = x.H/2;
+}
+
+function T_GP(p)
+{
+    if (p.Wp > p.Wc) {
+        return p.Wp;
+    }
+
+    return p.Wc;
+}
+
+function T_G1(p)
+{
+    if (p.Wp == p.Wc) {
+        return p.Wc;
+    }
+
+    m = Math.floor((p.Sc + (p.Kp - 1) * p.Wc)/(p.Wp - p.Wc)) + p.Kp;
+
+    return p.Wp + p.Np / m;
+}
+
+function T_G2(p)
+{
+    if (p.Wp == p.Wc) {
+        return p.Wc;
+    }
+
+    m = Math.floor((p.Sp + (p.Kc - 1) * p.Wp)/(p.Wc - p.Wp)) + p.Kc;
+
+    return p.Wc + p.Nc / m;
+}
+
+function T_GX(p)
+{
+    if (p.Wc < p.Wp) {
+        // Fast consumer
+        return T_G1(p);
+    }
+
+    // Fast producer
+    return T_G2(p);
+}
+
+// Global prototype.
+function Global()
+{
+    // Grab the 'canvas' element.
+    this.chartdiv = document.getElementById('curve_chart');
+    //resize(this);
+    this.chart = new google.visualization.LineChart(this.chartdiv);
+
+    var options = {
+      title: 'Time between two messages',
+      curveType: 'function',
+      legend: { position: 'top' }
+    };
+
+    this.params = {};
+    this.params.Wc = 200.0;
+    this.params.Wp = 200.0;
+    this.params.Sp = 500.0;
+    this.params.Sc = 700.0;
+    this.params.Np = 1200.0;
+    this.params.Nc = 1500.0;
+    this.params.Kp = 1;
+    this.params.Kc = 1;
+
+    var data_array;
+    var data;
+
+    data_array = [['W_P', 'T_GP', 'T_Gx']];
+    for (var i=1; i<4*this.params.Wc; i++) {
+        this.params.Wp = i-1;
+        data_array[i] = [
+            this.params.Wp,
+            T_GP(this.params),
+            T_GX(this.params)
+        ];
+    }
+    data = google.visualization.arrayToDataTable(data_array);
+    this.chart.draw(data, options);
+}
+
+function onload()
+{
+}
+
+function drawChart()
+{
+    g = new Global();
+}
+
+// Record that the key is now not pressed.
+function bodyKeyUp(e)
+{
+}
+
+// Record that the key is now pressed.
+function bodyKeyDown(e)
+{
+}
+        </script>
+    </head>
+
+    <body onload="onload()" onkeyup="bodyKeyUp(event)"
+        onkeydown="bodyKeyDown(event)"
+      style='position: absolute; padding:0; margin:0; height: 90%;
+             width:90%'>
+        <div>
+        </div>
+
+        <div id="curve_chart" style="width: 900px; height: 500px"></div>
+    </body>
+
+</html>
