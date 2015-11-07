@@ -83,24 +83,23 @@ function T_GX(p)
     return p.Wc + p.Nc / m;
 }
 
-function L_crit_SC(p)
+function L_crit(p)
 {
-    if (p.Wp == 0) {
-        // Extend the curve when Wp == 0
-        p.Wp = 1;
+    if (p.Wc < p.Wp) {
+        if (p.Wp == 0) {
+            // Extend the curve when Wp == 0
+            p.Wp = 1;
+        }
+
+        return 1 + p.Kp + Math.floor((p.Sc + p.Wc) / p.Wp);
     }
 
-    return 1 + p.Kp + Math.floor((p.Sc + p.Wc)/p.Wp);
-}
-
-function L_crit_SP(p)
-{
     if (p.Wc == 0) {
-        // Extend the curve when Wc == 0
+        // Extend the curve when Wp == 0
         p.Wc = 1;
     }
 
-    return 1 + p.Kc + Math.floor((p.Sp + p.Wp)/p.Wc);
+    return 1 + p.Kc + Math.floor((p.Sp + p.Wp) / p.Wc);
 }
 
 function get_regime(p)
@@ -109,27 +108,27 @@ function get_regime(p)
     var sps = slow_producer_startup(p);
 
     if (scs && sps) {
-        return "SS";
+        return "(SS) Slow producer and consumer startup";
     }
 
     if (p.Wc < p.Wp) {
         // Fast consumer
         if (scs) {
             // Short queue
-            return "SC";
+            return "(SC) Slow consumer startup";
         }
 
         // Large queue
-        return "G1";
+        return "(G1) Fast consumer";
     }
 
     // Fast producer
     if (sps) {
         // Short queue
-        return "SP";
+        return "(SP) Slow producer startup";
     }
 
-    return "G2";
+    return "(G2) Fast producer";
 }
 
 function get_int_val(pname)
@@ -146,7 +145,9 @@ function Global()
     this.options1 = {
       title: 'Time between two messages',
       curveType: 'none',
-      legend: { position: 'top' }
+      legend: { position: 'top' },
+      hAxis: { title: 'Wp' },
+      vAxis: { title: 'Clock cycles'}
     };
     google.visualization.events.addListener(this.chart1, 'onmouseover',
                                             mouseoverHandler);
@@ -154,10 +155,11 @@ function Global()
     this.chart2div = document.getElementById('curve_chart2');
     this.chart2 = new google.visualization.LineChart(this.chart2div);
     this.options2 = {
-      title: 'Critical queue lengths for SC, SP and SS regimes',
+      title: 'Critical queue lengths for SC, SP and SS regimes (when L is below the critical line, the system is in SS, SC or SC regimes)',
       curveType: 'none',
       legend: { position: 'top' },
-      vAxis : { logScale: true }
+      hAxis: { title: 'Wp' },
+      vAxis : { logScale: true, title: 'Queue length' }
     };
 
 
@@ -209,13 +211,12 @@ function Global()
         this.chart1.draw(data, this.options1);
 
         // Second plot
-        data_array = [['W_P', 'L_crit_SC', 'L_crit_SP']];
+        data_array = [['W_P', 'L_crit']];
         for (var i=1; i<range_mult * this.params.Wc; i++) {
             this.params.Wp = i-1;
             data_array[i] = [
                 this.params.Wp,
-                L_crit_SC(this.params),
-                L_crit_SP(this.params)
+                L_crit(this.params),
             ];
         }
         var data = google.visualization.arrayToDataTable(data_array);
