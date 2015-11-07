@@ -32,37 +32,49 @@ function T_GP(p)
     return p.Wc;
 }
 
-function T_G1(p)
-{
-    if (p.Wp == p.Wc) {
-        return p.Wc;
-    }
-
-    m = Math.floor((p.Sc + (p.Kp - 1) * p.Wc)/(p.Wp - p.Wc)) + p.Kp;
-
-    return p.Wp + p.Np / m;
-}
-
-function T_G2(p)
-{
-    if (p.Wp == p.Wc) {
-        return p.Wc;
-    }
-
-    m = Math.floor((p.Sp + (p.Kc - 1) * p.Wp)/(p.Wc - p.Wp)) + p.Kc;
-
-    return p.Wc + p.Nc / m;
-}
-
 function T_GX(p)
 {
+    if (p.Sc + p.Wc > (p.L - p.Kp) * p.Wp &&
+            p.Sp + p.Wp > (p.L - p.Kc) * p.Wc) {
+        // Slow consumer and producer startup --> Short queue regime (SS)
+        return (p.Kp * p.Wp + p.Kc * p.Wc + p.Np + p.Nc + p.Sp + p.Sc)/p.L
+    }
+
+    if (p.Wp == p.Wc) {
+        return p.Wc;
+    }
+
     if (p.Wc < p.Wp) {
         // Fast consumer
-        return T_G1(p);
+
+        if (p.Sc + p.Wc > (p.L - p.Kp) * p.Wp) {
+            // Slow consumer startup --> Short queue regime (SC)
+            m = Math.floor(((p.L - p.Kc)*p.Wc - (p.Sp + p.Wp))/(p.Wp - p.Wc)) + 1;
+
+            //TODO
+            return p.Wp + p.Np / m;
+        }
+
+        // No short queue effects (G1)
+        m = Math.floor((p.Sc + (p.Kp - 1) * p.Wc)/(p.Wp - p.Wc)) + p.Kp;
+
+        return p.Wp + p.Np / m;
     }
 
     // Fast producer
-    return T_G2(p);
+
+    if (p.Sp + p.Wp > (p.L - p.Kc) * p.Wc) {
+        // Slow producer startup --> Short queue regime (SP)
+        m = Math.floor(((p.L - p.Kp)*p.Wp - (p.Sc + p.Wc))/(p.Wc - p.Wp)) + 1;
+
+        // TODO
+        return p.Wc + p.Nc / m;
+    }
+
+    // No short queue effects (G2)
+    m = Math.floor((p.Sp + (p.Kc - 1) * p.Wp)/(p.Wc - p.Wp)) + p.Kc;
+
+    return p.Wc + p.Nc / m;
 }
 
 function get_int_val(pname)
@@ -80,7 +92,7 @@ function Global()
 
     var options = {
       title: 'Time between two messages',
-      curveType: 'function',
+      curveType: 'none',
       legend: { position: 'top' }
     };
 
@@ -99,6 +111,7 @@ function Global()
         new_params.Nc = get_int_val('Nc');
         new_params.Kp = get_int_val('Kp');
         new_params.Kc = get_int_val('Kc');
+        new_params.L = get_int_val('L');
 
         if (new_params.Wp == this.params.Wp &&
                 new_params.Wc == this.params.Wc &&
@@ -107,7 +120,8 @@ function Global()
                 new_params.Np == this.params.Np &&
                 new_params.Nc == this.params.Nc &&
                 new_params.Kp == this.params.Kp &&
-                new_params.Kc == this.params.Kc) {
+                new_params.Kc == this.params.Kc &&
+                new_params.L == this.params.L) {
             return;
         }
         this.params = new_params;
@@ -159,6 +173,7 @@ function onload()
             Nc <input type="text" id="Nc" value="1500" onblur="paramBlur(event)"><br>
             Kp <input type="text" id="Kp" value="1" onblur="paramBlur(event)"><br>
             Kc <input type="text" id="Kc" value="1" onblur="paramBlur(event)"><br>
+            L <input type="text" id="L" value="128" onblur="paramBlur(event)"><br>
         </div>
 
         <div id="curve_chart" style="width: 100%; height: 600px"></div>
