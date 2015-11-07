@@ -15,14 +15,6 @@ google.load('visualization', '1', {'packages':['corechart']});
 // Set a callback to run when the Google Visualization API is loaded.
 google.setOnLoadCallback(googleAPILoaded);
 
-function resize(x)
-{
-    x.W = x.chartdiv.width = x.chartdiv.parentNode.clientWidth;
-    x.H = x.chartdiv.height = x.chartdiv.parentNode.clientHeight;
-    x.cx = x.W/2;
-    x.cy = x.H/2;
-}
-
 function T_GP(p)
 {
     if (p.Wp > p.Wc) {
@@ -34,25 +26,28 @@ function T_GP(p)
 
 function T_GX(p)
 {
-    if (p.Sc + p.Wc > (p.L - p.Kp) * p.Wp &&
-            p.Sp + p.Wp > (p.L - p.Kc) * p.Wc) {
+    var slow_cons_startup = (p.Sc + p.Wc > (p.L - p.Kp) * p.Wp);
+    var slow_prod_startup = (p.Sp + p.Wp > (p.L - p.Kc) * p.Wc);
+
+    if (slow_cons_startup && slow_prod_startup) {
         // Slow consumer and producer startup --> Short queue regime (SS)
         return (p.Kp * p.Wp + p.Kc * p.Wc + p.Np + p.Nc + p.Sp + p.Sc)/p.L
     }
 
     if (p.Wp == p.Wc) {
+        // Perfect lockstep
         return p.Wc;
     }
 
     if (p.Wc < p.Wp) {
         // Fast consumer
 
-        if (p.Sc + p.Wc > (p.L - p.Kp) * p.Wp) {
+        if (slow_cons_startup) {
             // Slow consumer startup --> Short queue regime (SC)
-            m = Math.floor(((p.L - p.Kc)*p.Wc - (p.Sp + p.Wp))/(p.Wp - p.Wc)) + 1;
+            m = Math.floor(((p.L - p.Kc) * p.Wc - (p.Sp + p.Wp))/(p.Wp - p.Wc)) + 1;
 
-            //TODO
-            return p.Wp + p.Np / m;
+            return (p.Sc + p.Wc * p.Kc + p.Nc +
+                    p.Sp + (m + p.Kp) * p.Wp + p.Np) / (p.L + m);
         }
 
         // No short queue effects (G1)
@@ -63,18 +58,38 @@ function T_GX(p)
 
     // Fast producer
 
-    if (p.Sp + p.Wp > (p.L - p.Kc) * p.Wc) {
+    if (slow_prod_startup) {
         // Slow producer startup --> Short queue regime (SP)
-        m = Math.floor(((p.L - p.Kp)*p.Wp - (p.Sc + p.Wc))/(p.Wc - p.Wp)) + 1;
+        m = Math.floor(((p.L - p.Kp) * p.Wp - (p.Sc + p.Wc))/(p.Wc - p.Wp)) + 1;
 
-        // TODO
-        return p.Wc + p.Nc / m;
+        return (p.Sp + p.Wp * p.Kp + p.Np +
+                p.Sc + (m + p.Kc) * p.Wc + p.Nc) / (p.L + m);
     }
 
     // No short queue effects (G2)
     m = Math.floor((p.Sp + (p.Kc - 1) * p.Wp)/(p.Wc - p.Wp)) + p.Kc;
 
     return p.Wc + p.Nc / m;
+}
+
+function L_crit_SC(p)
+{
+    if (p.Wp == 0) {
+        // Extend the curve when Wp == 0
+        p.Wp = 1;
+    }
+
+    return 1 + p.Kp + Math.floor((p.Sc + p.Wc)/p.Wp);
+}
+
+function L_crit_SP(p)
+{
+    if (p.Wc == 0) {
+        // Extend the curve when Wc == 0
+        p.Wc = 1;
+    }
+
+    return 1 + p.Kc + Math.floor((p.Sp + p.Wp)/p.Wc);
 }
 
 function get_int_val(pname)
@@ -86,21 +101,30 @@ function get_int_val(pname)
 function Global()
 {
     // Grab the 'canvas' element.
-    this.chartdiv = document.getElementById('curve_chart');
-    //resize(this);
-    this.chart = new google.visualization.LineChart(this.chartdiv);
-
-    var options = {
+    this.chart1div = document.getElementById('curve_chart1');
+    this.chart1 = new google.visualization.LineChart(this.chart1div);
+    this.options1 = {
       title: 'Time between two messages',
       curveType: 'none',
       legend: { position: 'top' }
     };
+
+    this.chart2div = document.getElementById('curve_chart2');
+    this.chart2 = new google.visualization.LineChart(this.chart2div);
+    this.options2 = {
+      title: 'Critical queue lengths for SC, SP and SS regimes',
+      curveType: 'none',
+      legend: { position: 'top' },
+      vAxis : { logScale: true }
+    };
+
 
     this.params = {};
     this.update = update;
     this.update();
 
     function update() {
+        var range_mult = 4;
         var new_params = {};
 
         new_params.Wp = get_int_val('Wp');
@@ -126,10 +150,12 @@ function Global()
         }
         this.params = new_params;
 
-        var data_array = [['W_P', 'T_GP', 'T_Gx']];
         var save_Wp = this.params.Wp;
+        var data_array;
 
-        for (var i=1; i<4*this.params.Wc; i++) {
+        // First plot
+        data_array = [['W_P', 'T_GP', 'T_Gx']];
+        for (var i=1; i<range_mult * this.params.Wc; i++) {
             this.params.Wp = i-1;
             data_array[i] = [
                 this.params.Wp,
@@ -138,7 +164,20 @@ function Global()
             ];
         }
         var data = google.visualization.arrayToDataTable(data_array);
-        this.chart.draw(data, options);
+        this.chart1.draw(data, this.options1);
+
+        // Second plot
+        data_array = [['W_P', 'L_crit_SC', 'L_crit_SP']];
+        for (var i=1; i<range_mult * this.params.Wc; i++) {
+            this.params.Wp = i-1;
+            data_array[i] = [
+                this.params.Wp,
+                L_crit_SC(this.params),
+                L_crit_SP(this.params)
+            ];
+        }
+        var data = google.visualization.arrayToDataTable(data_array);
+        this.chart2.draw(data, this.options2);
 
         this.params.Wp = save_Wp;
     }
@@ -176,7 +215,8 @@ function onload()
             L <input type="text" id="L" value="128" onblur="paramBlur(event)"><br>
         </div>
 
-        <div id="curve_chart" style="width: 100%; height: 600px"></div>
+        <div id="curve_chart1" style="width: 100%; height: 600px"></div>
+        <div id="curve_chart2" style="width: 100%; height: 600px"></div>
     </body>
 
 </html>
