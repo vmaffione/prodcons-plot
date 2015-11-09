@@ -83,23 +83,45 @@ function T_GX(p)
     return p.Wc + p.Nc / m;
 }
 
-function L_crit(p)
+function L_crit_SC(p)
 {
-    if (p.Wc < p.Wp) {
-        if (p.Wp == 0) {
-            // Extend the curve when Wp == 0
-            p.Wp = 1;
-        }
-
-        return 1 + p.Kp + Math.floor((p.Sc + p.Wc) / p.Wp);
+    if (p.Wp == 0) {
+        // Extend the curve when Wp == 0
+        p.Wp = 1;
     }
 
+    return 1 + p.Kp + Math.floor((p.Sc + p.Wc) / p.Wp);
+}
+
+function L_crit_SP(p)
+{
     if (p.Wc == 0) {
         // Extend the curve when Wp == 0
         p.Wc = 1;
     }
 
     return 1 + p.Kc + Math.floor((p.Sp + p.Wp) / p.Wc);
+}
+
+function L_crit(p)
+{
+    if (p.Wc < p.Wp) {
+        return L_crit_SC(p);
+    }
+
+    return L_crit_SP(p);
+}
+
+function L_crit_SS(p)
+{
+    var lc_sc = L_crit_SC(p);
+    var lc_sp = L_crit_SP(p);
+
+    if (lc_sc < lc_sp) {
+        return lc_sc;
+    }
+
+    return lc_sp;
 }
 
 function get_regime(p)
@@ -143,7 +165,7 @@ function Global()
     this.chart1div = document.getElementById('curve_chart1');
     this.chart1 = new google.visualization.LineChart(this.chart1div);
     this.options1 = {
-      title: 'Time between two messages',
+      title: 'Average time between two messages',
       curveType: 'none',
       legend: { position: 'top' },
       hAxis: { title: 'Wp' },
@@ -211,12 +233,13 @@ function Global()
         this.chart1.draw(data, this.options1);
 
         // Second plot
-        data_array = [['W_P', 'L_crit']];
+        data_array = [['W_P', 'L_crit_SS', 'L_crit']];
         for (var i=1; i<range_mult * this.params.Wc; i++) {
             this.params.Wp = i-1;
             data_array[i] = [
                 this.params.Wp,
-                L_crit(this.params),
+                L_crit_SS(this.params),
+                L_crit(this.params)
             ];
         }
         var data = google.visualization.arrayToDataTable(data_array);
