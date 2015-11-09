@@ -27,6 +27,11 @@ function T_GP(p)
     return p.Wc;
 }
 
+function T_SS_best(p)
+{
+    return (p.Np + p.Nc + (p.Wp + p.Wc) * (p.L - 1)) / p.L;
+}
+
 function T_SS(p)
 {
     return (p.Kp * p.Wp + p.Kc * p.Wc + p.Np + p.Nc + p.Sp + p.Sc) / p.L;
@@ -78,11 +83,6 @@ function T_GX(p)
     m = Math.floor((p.Sp + (p.Kc - 1) * p.Wp)/(p.Wc - p.Wp)) + p.Kc;
 
     return p.Wc + p.Nc / m;
-}
-
-function T_SS_best(p)
-{
-    return (p.Np + p.Nc + (p.Wp + p.Wc) * (p.L - 1)) / p.L;
 }
 
 function L_crit_SC(p)
@@ -222,15 +222,14 @@ function Global()
         var data_array;
 
         // First plot
-        data_array = [['W_P', 'T_GP', 'T_Gx', 'T_SS_best', 'T_SS']];
+        data_array = [['W_P', 'T_GP', 'T_SS_best', 'T_Gx']];
         for (var i=1; i<range_mult * this.params.Wc; i++) {
             this.params.Wp = i-1;
             data_array[i] = [
                 this.params.Wp,
                 T_GP(this.params),
-                T_GX(this.params),
                 T_SS_best(this.params),
-                T_SS(this.params)
+                T_GX(this.params)
             ];
         }
         var data = google.visualization.arrayToDataTable(data_array);
