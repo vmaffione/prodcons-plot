@@ -260,7 +260,7 @@ function paramBlur()
 
 function mouseoverHandler(e)
 {
-    if (e['column'] != 2) {
+    if (e['column'] != 3) {
         // User is not going over the T_G plot
         return;
     }
