@@ -273,13 +273,60 @@ function mouseoverHandler(e)
     g.params.Wp = save_wp;
 }
 
+function in_array(needle, haystack)
+{
+    return haystack.indexOf(needle) > -1;
+}
+
 function keyPressHandler(e)
 {
-    if (e.keyCode != 13) {
+    if (e.keyCode == 13) { //Enter
+        g.update();
         return;
     }
 
-    g.update();
+    if ((e.keyCode == 36 || e.keyCode == 35) && // Home || End
+                        document.activeElement != null) {
+        var delta;
+        var value;
+        var newvalue;
+
+        if (in_array(document.activeElement.id, ["Wp", "Wc", "Sp", "Sc", "Np", "Nc", "L"])) {
+            value = parseInt(document.activeElement.value)
+            delta = Math.ceil(value/10);
+        } else if (in_array(document.activeElement.id, ["Kc", "Kp"])) {
+            value = parseInt(document.activeElement.value);
+            delta = 1;
+        } else {
+            return;
+        }
+
+        if (delta == 0) {
+            delta = 1;
+        }
+
+        if (e.keyCode == 36) {
+            delta = delta * (-1);
+        }
+//window.alert("Updated to " + value.toString() + " " + delta.toString());
+        newvalue = value + delta;
+
+        if (newvalue < 0) {
+            // Don't allow to go negative
+            newvalue = value;
+        }
+
+        if (newvalue == 0 && !in_array(document.activeElement.id, ["Sc", "Sp", "Np", "Nc"])) {
+            // Only some knobs can be tuned to 0
+            newvalue = value;
+        }
+
+        if (value != newvalue) {
+            document.activeElement.value = newvalue.toString()
+                g.update();
+        }
+    }
+    // home = 36, end = 35
 }
 
 function googleAPILoaded()
