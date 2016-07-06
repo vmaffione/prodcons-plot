@@ -5,13 +5,6 @@ import re
 import math
 
 
-def add_events(events, value, items):
-    if isinstance(items, float):
-        return
-    for i in range(items):
-        events.append(value)
-
-
 class ProdConsState:
     def __init__(self, args):
         self.args = args
@@ -31,45 +24,57 @@ class ProdConsState:
         self.cons_sleeps = 0
 
     def dump(self):
-        self.prod_events = self.prod_events[-195:]
-        self.cons_events = self.cons_events[-195:]
-        for elem in self.prod_events:
-            print(elem, end = '')
-        print('')
-        for elem in self.cons_events:
-            print(elem, end = '')
-        print('')
+        from matplotlib import pyplot as plt
+
+        max_time = max(self.prod_events[-1][0] + self.prod_events[-1][2],
+                       self.cons_events[-1][0] + self.cons_events[-1][2])
+        fig = plt.figure()
+        ax = plt.axes(xlim=(0, max_time), ylim=(0, 100))
+
+        for ev in self.prod_events:
+            if ev[1] == 'z':
+                color = 'y'
+            else:
+                color = 'r'
+            rectangle = plt.Rectangle((ev[0], 90), ev[0] + ev[2], 2, fc=color)
+            plt.gca().add_patch(rectangle)
+
+        for ev in self.cons_events:
+            if ev[1] == 'z':
+                color = 'y'
+            else:
+                color = 'g'
+            rectangle = plt.Rectangle((ev[0], 85), ev[0] + ev[2], 2, fc=color)
+            plt.gca().add_patch(rectangle)
+
+        plt.show()
 
     def prod_front(self):
         if self.qlen < self.args.l:
-            add_events(self.prod_events, '%x' % self.pkt_prod, self.args.wp)
+            self.prod_events.append((self.t, self.pkt_prod, self.args.wp))
             self.future_push(self.t + self.args.wp, ProdConsState.prod_back)
         else:
-            add_events(self.prod_events, ' ', self.args.yp)
+            self.prod_events.append((self.t, 'z', self.args.yp))
             self.future_push(self.t + self.args.yp, ProdConsState.prod_front)
             self.prod_sleeps += 1
 
     def prod_back(self):
         self.qlen += 1
         self.pkt_prod += 1
-        if self.pkt_prod == 16:
-            self.pkt_prod = 0
         self.future_push(self.t, ProdConsState.prod_front)
 
     def cons_front(self):
         if self.qlen > 0:
-            add_events(self.cons_events, '%x' % self.pkt_cons, self.args.wc)
+            self.cons_events.append((self.t, self.pkt_cons, self.args.wc))
             self.future_push(self.t + self.args.wc, ProdConsState.cons_back)
         else:
-            add_events(self.cons_events, ' ', self.args.yc)
+            self.cons_events.append((self.t, 'z', self.args.yc))
             self.future_push(self.t + self.args.yc, ProdConsState.cons_front)
             self.cons_sleeps += 1
 
     def cons_back(self):
         self.qlen -= 1
         self.pkt_cons += 1
-        if self.pkt_cons == 16:
-            self.pkt_cons = 0
         self.future_push(self.t, ProdConsState.cons_front)
         self.pkts += 1
 
@@ -85,7 +90,7 @@ class ProdConsState:
 
 def simulate(args):
     pcs = ProdConsState(args)
-    add_events(pcs.cons_events, ' ', args.cons_offset)
+    pcs.cons_events.append((0, 'z', args.cons_offset))
     pcs.future_push(0, ProdConsState.prod_front)
     pcs.future_push(args.cons_offset, ProdConsState.cons_front)
 
