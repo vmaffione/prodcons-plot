@@ -52,40 +52,40 @@ class ProdConsState:
 
         plt.show()
 
-    def prod_front(self):
+    def prod_sleep_front(self):
         if self.qlen < self.args.l:
             self.prod_events.append((self.t, self.pkt_prod, self.args.wp))
-            self.future_push(self.t + self.args.wp, ProdConsState.prod_back)
+            self.future_push(self.t + self.args.wp, ProdConsState.prod_sleep_back)
         else:
             self.prod_events.append((self.t, 'z', self.args.yp))
-            self.future_push(self.t + self.args.yp, ProdConsState.prod_front)
+            self.future_push(self.t + self.args.yp, ProdConsState.prod_sleep_front)
             self.prod_sleeps += 1
 
-    def prod_back(self):
+    def prod_sleep_back(self):
         self.qlen += 1
         self.pkt_prod += 1
-        self.future_push(self.t, ProdConsState.prod_front)
+        self.future_push(self.t, ProdConsState.prod_sleep_front)
 
-    def cons_front(self):
+    def cons_sleep_front(self):
         if self.qlen > 0:
             self.cons_events.append((self.t, self.pkt_cons, self.args.wc))
-            self.future_push(self.t + self.args.wc, ProdConsState.cons_back)
+            self.future_push(self.t + self.args.wc, ProdConsState.cons_sleep_back)
         else:
             self.cons_events.append((self.t, 'z', self.args.yc))
-            self.future_push(self.t + self.args.yc, ProdConsState.cons_front)
+            self.future_push(self.t + self.args.yc, ProdConsState.cons_sleep_front)
             self.cons_sleeps += 1
 
-    def cons_back(self):
+    def cons_sleep_back(self):
         self.qlen -= 1
         self.pkt_cons += 1
-        self.future_push(self.t, ProdConsState.cons_front)
+        self.future_push(self.t, ProdConsState.cons_sleep_front)
         self.pkts += 1
 
     def future_push(self, t, cb):
         for i in range(len(self.future)):
             if t < self.future[i][0] or (t == self.future[i][0] and \
-                    (cb == ProdConsState.prod_back or \
-                     cb == ProdConsState.cons_back)):
+                    (cb == ProdConsState.prod_sleep_back or \
+                     cb == ProdConsState.cons_sleep_back)):
                 self.future.insert(i, (t, cb))
                 return
         self.future.append((t, cb))
@@ -94,8 +94,8 @@ class ProdConsState:
 def simulate(args):
     pcs = ProdConsState(args)
     pcs.cons_events.append((0, 'z', args.cons_offset))
-    pcs.future_push(0, ProdConsState.prod_front)
-    pcs.future_push(args.cons_offset, ProdConsState.cons_front)
+    pcs.future_push(0, ProdConsState.prod_sleep_front)
+    pcs.future_push(args.cons_offset, ProdConsState.cons_sleep_front)
 
     cnt = 0
     while pcs.t <= args.time_max:
@@ -225,14 +225,6 @@ if args.depends:
     plot_depends(args, xs, t_vec, t_lower_vec, t_higher_vec)
 
 else:
-    if not args.quiet:
-        # We need integers to show simulations
-        args.wp = int(args.wp)
-        args.wc = int(args.wc)
-        args.yp = int(args.yp)
-        args.yc = int(args.yc)
-        args.cons_offset = int(args.cons_offset)
-
     pcs = simulate(args)
 
     if not args.quiet:
