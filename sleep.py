@@ -31,21 +31,24 @@ class ProdConsState:
         fig = plt.figure()
         ax = plt.axes(xlim=(0, max_time), ylim=(0, 100))
 
+        y = 90
+        size = 2
         for ev in self.prod_events:
             if ev[1] == 'z':
-                color = 'y'
+                line = plt.Line2D((ev[0], ev[0] + ev[2]), (y + size/2, y + size/2), lw=2.5)
+                plt.gca().add_line(line)
             else:
-                color = 'r'
-            rectangle = plt.Rectangle((ev[0], 90), ev[0] + ev[2], 2, fc=color)
-            plt.gca().add_patch(rectangle)
+                rectangle = plt.Rectangle((ev[0], y), ev[2], size, fc='r')
+                plt.gca().add_patch(rectangle)
 
+        y = 85
         for ev in self.cons_events:
             if ev[1] == 'z':
-                color = 'y'
+                line = plt.Line2D((ev[0], ev[0] + ev[2]), (y + size/2, y + size/2), lw=2.5)
+                plt.gca().add_line(line)
             else:
-                color = 'g'
-            rectangle = plt.Rectangle((ev[0], 85), ev[0] + ev[2], 2, fc=color)
-            plt.gca().add_patch(rectangle)
+                rectangle = plt.Rectangle((ev[0], y), ev[2], size, fc='g')
+                plt.gca().add_patch(rectangle)
 
         plt.show()
 
