@@ -133,7 +133,7 @@ class ProdConsState:
         self.qlen += 1
         self.pkt_prod += 1
         t_next = self.t
-        if not self.cons_active:
+        if not self.cons_active and self.qlen >= self.args.kp:
             self.cons_active = True
             self.prod_events.append((self.t, 'n', self.args.np))
             self.cons_events.append((self.t + self.args.np, 's', self.args.sc))
@@ -154,7 +154,7 @@ class ProdConsState:
         self.pkt_cons += 1
         t_next = self.t
         self.pkts += 1
-        if not self.prod_active:
+        if not self.prod_active and self.args.l - self.qlen >= self.args.kc:
             self.prod_active = True
             self.cons_events.append((self.t, 'n', self.args.nc))
             self.prod_events.append((self.t + self.args.nc, 's', self.args.sp))
@@ -255,6 +255,8 @@ argparser.add_argument('--nc', help = "Nc", type = float, default = 3.0)
 argparser.add_argument('--np', help = "Np", type = float, default = 4.5)
 argparser.add_argument('--sc', help = "Sc", type = float, default = 2.1)
 argparser.add_argument('--sp', help = "Sp", type = float, default = 7.1)
+argparser.add_argument('--kp', help = "Kp", type = int, default = 1)
+argparser.add_argument('--kc', help = "Kc", type = int, default = 1)
 argparser.add_argument('-l', help = "Queue length", type = int, default = 3)
 argparser.add_argument('--cons-offset', help = "Consumer start delay", type = float, default = 0.0)
 argparser.add_argument('-q', '--quiet', help = "Compute only stats", action='store_true')
@@ -273,7 +275,7 @@ args = argparser.parse_args()
 
 
 print('Parameters:')
-print('    L  = %.2f' % args.l)
+print('    L  = %d' % args.l)
 print('    Wp = %.2f' % args.wp)
 print('    Wc = %.2f' % args.wc)
 print('    Yp = %.2f' % args.yp)
@@ -282,6 +284,8 @@ print('    Np = %.2f' % args.np)
 print('    Nc = %.2f' % args.nc)
 print('    Sp = %.2f' % args.sp)
 print('    Sc = %.2f' % args.sc)
+print('    Kp = %d' % args.kp)
+print('    Kc = %d' % args.kc)
 print('')
 
 mx = max(args.wp, args.wc, args.yp, args.yc,
