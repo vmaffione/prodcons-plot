@@ -270,6 +270,18 @@ argparser.add_argument('--points', help = "number of Yp or Yc points to test whe
 args = argparser.parse_args()
 
 
+print('Parameters:')
+print('    L  = %.2f' % args.l)
+print('    Wp = %.2f' % args.wp)
+print('    Wc = %.2f' % args.wc)
+print('    Yp = %.2f' % args.yp)
+print('    Yc = %.2f' % args.yc)
+print('    Np = %.2f' % args.np)
+print('    Nc = %.2f' % args.nc)
+print('    Sp = %.2f' % args.sp)
+print('    Sc = %.2f' % args.sc)
+print('')
+
 mx = max(args.l * args.wp, args.l * args.wc, args.yp, args.yc,
          args.np, args.nc, args.sp, args.sc)
 
