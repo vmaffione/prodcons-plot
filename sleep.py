@@ -30,15 +30,21 @@ class ProdConsState:
     def dump(self):
         from matplotlib import pyplot as plt
 
+        xunit = min(self.args.wp, self.args.wc)
+
         max_time = max(self.prod_events[-1][0] + self.prod_events[-1][2],
                        self.cons_events[-1][0] + self.cons_events[-1][2])
         fig = plt.figure()
-        ax = plt.axes(xlim=(0, max_time), ylim=(0, 100))
+        ax = plt.axes(xlim=(0, self.args.xunits * xunit), ylim=(0, 100))
 
-        print(self.prod_events)
-        y = 90
+        y = 95
+        ofs = 0
         size = 2
         for ev in self.prod_events:
+            if ev[0] + ev[2] - ofs > self.args.xunits * xunit:
+                ofs += self.args.xunits * xunit
+                y -= 10
+            ev = (ev[0] - ofs, ev[1], ev[2])
             if ev[1] == 'z':
                 line = plt.Line2D((ev[0], ev[0] + ev[2]), (y + size/2, y + size/2), lw=2.5)
                 plt.gca().add_line(line)
@@ -52,8 +58,13 @@ class ProdConsState:
                 rectangle = plt.Rectangle((ev[0], y), ev[2], size, fc='r')
                 plt.gca().add_patch(rectangle)
 
-        y = 85
+        y = 92
+        ofs = 0
         for ev in self.cons_events:
+            if ev[0] + ev[2] - ofs > self.args.xunits * xunit:
+                ofs += self.args.xunits * xunit
+                y -= 10
+            ev = (ev[0] - ofs, ev[1], ev[2])
             if ev[1] == 'z':
                 line = plt.Line2D((ev[0], ev[0] + ev[2]), (y + size/2, y + size/2), lw=2.5)
                 plt.gca().add_line(line)
@@ -245,6 +256,7 @@ argparser.add_argument('--sp', help = "Sp", type = float, default = 7.1)
 argparser.add_argument('-l', help = "Queue length", type = int, default = 3)
 argparser.add_argument('--cons-offset', help = "Consumer start delay", type = float, default = 0.0)
 argparser.add_argument('-q', '--quiet', help = "Compute only stats", action='store_true')
+argparser.add_argument('--xunits', help = "Wp/Wc units per line in the plot", type = int, default = 180)
 
 argparser.add_argument('-a', '--algorithm', help = "Algorithm",
                        choices=['sleep', 'notify'], default = 'sleep')
@@ -258,13 +270,13 @@ argparser.add_argument('--points', help = "number of Yp or Yc points to test whe
 args = argparser.parse_args()
 
 
+mx = max(args.l * args.wp, args.l * args.wc, args.yp, args.yc,
+         args.np, args.nc, args.sp, args.sc)
+
 if args.depends:
 
     # Check that simulation length is acceptable
-    mx = max(args.l * args.wp, args.l * args.wc, args.yp, args.yc)
-    mx = mx * 1000
-    if args.time_max < mx:
-        args.time_max = mx
+    args.time_max = max(mx * 1000, args.time_max)
     print('Simulation length: %d' % args.time_max)
 
     # Start from the region where slow-party sleep happens
@@ -298,6 +310,8 @@ if args.depends:
     plot_depends(args, xs, t_vec, t_lower_vec, t_higher_vec)
 
 else:
+    args.time_max = max(mx * 100, args.time_max)
+
     pcs = simulate(args)
 
     if not args.quiet:
