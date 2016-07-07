@@ -27,7 +27,7 @@ class ProdConsState:
         self.cons_active = False
         self.prod_active = True
 
-    def dump(self):
+    def dump(self, worst_case_pktidx):
         from matplotlib import pyplot as plt
 
         xunit = min(self.args.wp, self.args.wc)
@@ -52,10 +52,11 @@ class ProdConsState:
                 poly = plt.Polygon([[ev[0], y], [ev[0], y + size], [ev[0] + ev[2], y]], color = 'y')
                 plt.gca().add_patch(poly)
             elif ev[1] == 's':
-                poly = plt.Polygon([[ev[0], y], [ev[0] + ev[2], y], [ev[0] + ev[2], y + size]], color = 'b')
+                poly = plt.Polygon([[ev[0], y], [ev[0] + ev[2], y], [ev[0] + ev[2], y + size]], color = '#0080f0')
                 plt.gca().add_patch(poly)
             else:
-                rectangle = plt.Rectangle((ev[0], y), ev[2], size, fc='r')
+                color = 'k' if ev[1] in worst_case_pktidx else 'g'
+                rectangle = plt.Rectangle((ev[0], y), ev[2], size, fc=color)
                 plt.gca().add_patch(rectangle)
 
         y = 92
@@ -72,10 +73,11 @@ class ProdConsState:
                 poly = plt.Polygon([[ev[0], y], [ev[0], y + size], [ev[0] + ev[2], y + size]], color = 'y')
                 plt.gca().add_patch(poly)
             elif ev[1] == 's':
-                poly = plt.Polygon([[ev[0], y + size], [ev[0] + ev[2], y + size], [ev[0] + ev[2], y]], color = 'b')
+                poly = plt.Polygon([[ev[0], y + size], [ev[0] + ev[2], y + size], [ev[0] + ev[2], y]], color = '#0080f0')
                 plt.gca().add_patch(poly)
             else:
-                rectangle = plt.Rectangle((ev[0], y), ev[2], size, fc='g')
+                color = 'k' if ev[1] in worst_case_pktidx else 'r'
+                rectangle = plt.Rectangle((ev[0], y), ev[2], size, fc=color)
                 plt.gca().add_patch(rectangle)
 
         plt.show()
@@ -282,7 +284,7 @@ print('    Sp = %.2f' % args.sp)
 print('    Sc = %.2f' % args.sc)
 print('')
 
-mx = max(args.l * args.wp, args.l * args.wc, args.yp, args.yc,
+mx = max(args.wp, args.wc, args.yp, args.yc,
          args.np, args.nc, args.sp, args.sc)
 
 if args.depends:
@@ -326,8 +328,37 @@ else:
 
     pcs = simulate(args)
 
+    # Compute worst case service latencies
+    cev = 0
+    pev = 0
+    pktidx = 0
+    last_wp_t = 0
+    worst_case_pktidx = []
+    worst_case_latency = 0
+    while pev < len(pcs.prod_events) and cev < len(pcs.cons_events):
+        while pev < len(pcs.prod_events) and pcs.prod_events[pev][1] != pktidx:
+            pev += 1
+
+        while cev < len(pcs.cons_events) and pcs.cons_events[cev][1] != pktidx:
+            cev += 1
+
+        if pev >= len(pcs.prod_events) or cev >= len(pcs.cons_events):
+            break
+
+        latency = pcs.cons_events[cev][0] + pcs.args.wc - last_wp_t
+        last_wp_t = pcs.prod_events[pev][0]
+
+        if abs(latency - worst_case_latency) < 0.00000001:
+            worst_case_pktidx.append(pktidx)
+        elif latency > worst_case_latency:
+            worst_case_latency = latency
+            worst_case_pktidx = [pktidx]
+        pktidx += 1
+
+    print('Worst case latency: %.2f' % worst_case_latency)
+
     if not args.quiet:
-        pcs.dump()
+        pcs.dump(worst_case_pktidx)
 
     print('Packets processed %d' % pcs.pkts)
     print('Producer sleeps   %d' % pcs.prod_sleeps)
