@@ -1,0 +1,26 @@
+Since we are dealing with latency, in the following we assume Kp = 1.
+
+Polling:
+    Idle system: Wp + Wc
+    Saturated system:
+        Wc < Wp: 2Wp + Wc
+        Wc > Wp: 3Wc
+
+Notifiche:
+    Idle system: Wp + Np + Sc + Wc
+    Saturated system:
+        FC:
+            m = 1: 2Wp + 2Np + Sc + Wc
+            m > 1: 2Wp + Np  + Sc + Wc
+        FP: mWc - (Sp + mWp) + Nc(1 + floor((L-1)/m)) + LWc
+        SS: Sc - (L-2)Wp + KcWc + Nc + Sp + Wp + Np + Sc + Wc
+
+
+=== Notifiche ===
+
+Wp + Wc
+
+===
+
+=== Sleep ===
+xxx
