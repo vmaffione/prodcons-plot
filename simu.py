@@ -230,6 +230,41 @@ def latency_bound(args):
         return max(ss_lat, fp_lat)
 
 
+def service_latency(pcs, args):
+    # Compute worst case service latencies
+    cev = 0
+    pev = 0
+    pktidx = 0
+    last_wp_t = 0
+    worst_case_pktidx = []
+    worst_case_latency = 0
+    while pev < len(pcs.prod_events) and cev < len(pcs.cons_events):
+        while pev < len(pcs.prod_events) and pcs.prod_events[pev][1] != pktidx:
+            pev += 1
+
+        while cev < len(pcs.cons_events) and pcs.cons_events[cev][1] != pktidx:
+            cev += 1
+
+        if pev >= len(pcs.prod_events) or cev >= len(pcs.cons_events):
+            break
+
+        latency = pcs.cons_events[cev][0] + pcs.args.wc - last_wp_t
+        last_wp_t = pcs.prod_events[pev][0]
+
+        if abs(latency - worst_case_latency) < 0.00000001:
+            worst_case_pktidx.append(pktidx)
+        elif latency > worst_case_latency:
+            worst_case_latency = latency
+            worst_case_pktidx = [pktidx]
+        #print('pkt #%d --> latency %.2f' % (pktidx, latency))
+        pktidx += 1
+
+    if worst_case_latency - latency_bound(args) > 0.000001:
+        print('ERROR: worst case latency exceeds the bound')
+
+    return worst_case_latency, worst_case_pktidx
+
+
 def plot_depends(args, xs, t_vec, t_lower_vec, t_higher):
     from matplotlib import pyplot as plt
     plt.plot(xs, t_vec, 'o-', label='T_avg')
@@ -336,38 +371,9 @@ else:
 
     pcs = simulate(args)
 
-    # Compute worst case service latencies
-    cev = 0
-    pev = 0
-    pktidx = 0
-    last_wp_t = 0
-    worst_case_pktidx = []
-    worst_case_latency = 0
-    while pev < len(pcs.prod_events) and cev < len(pcs.cons_events):
-        while pev < len(pcs.prod_events) and pcs.prod_events[pev][1] != pktidx:
-            pev += 1
-
-        while cev < len(pcs.cons_events) and pcs.cons_events[cev][1] != pktidx:
-            cev += 1
-
-        if pev >= len(pcs.prod_events) or cev >= len(pcs.cons_events):
-            break
-
-        latency = pcs.cons_events[cev][0] + pcs.args.wc - last_wp_t
-        last_wp_t = pcs.prod_events[pev][0]
-
-        if abs(latency - worst_case_latency) < 0.00000001:
-            worst_case_pktidx.append(pktidx)
-        elif latency > worst_case_latency:
-            worst_case_latency = latency
-            worst_case_pktidx = [pktidx]
-        #print('pkt #%d --> latency %.2f' % (pktidx, latency))
-        pktidx += 1
-
+    worst_case_latency, worst_case_pktidx = service_latency(pcs, args)
     print('Worst case latency: %.2f, bound %.2f' % \
           (worst_case_latency, latency_bound(args)))
-    if worst_case_latency - latency_bound(args) > 0.000001:
-        print('ERROR: worst case latency exceeds the bound')
 
     if not args.quiet:
         pcs.dump(worst_case_pktidx)
