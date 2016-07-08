@@ -202,29 +202,13 @@ def t_cons(args, pcs):
 # consumer alternate
 def t_bounds(args):
     if args.wc < args.wp:
-        # Worst case: find minimum m | (Yp + (Wc-0)) + (m+1)wp > Wc L + m Wc
-        m_worst = math.floor((args.wc * args.l - (args.yp + args.wc - 0) - args.wp)/(args.wp - args.wc)) + 1
-        # Best case: find minimum m | (Wc) + (m+1)wp > Wc L + m Wc
-        m_best = math.floor((args.wc * args.l - (args.wc) - args.wp)/(args.wp - args.wc)) + 1
+        m = math.floor(((args.l-1) * args.wc)/(args.wp - args.wc))
+        t_best = ((args.l + m) * args.wc + args.yc)/(args.l + m)
     else:
-        m_worst = math.floor((args.wp * args.l - (args.yc + args.wp - 0) - args.wc)/(args.wc - args.wp)) + 1
-        m_best = math.floor((args.wp * args.l - (args.wp) - args.wc)/(args.wc - args.wp)) + 1
+        m = math.floor(((args.l-1) * args.wp)/(args.wc - args.wp))
+        t_best = ((args.l + m) * args.wp + args.yp)/(args.l + m)
 
-    if m_worst < 0:
-        m_worst = 0
-    if m_best < 0:
-        m_best = 0
-
-    # Who dominates the cycle ?
-    alt_c = args.yc + args.l * args.wc
-    alt_p = args.yp + args.l * args.wp
-    if alt_c > alt_p:
-        return ((args.yc + args.wc * (m_best + args.l)) / (m_best + args.l),
-                (args.yc + args.wc * (m_worst + args.l)) / (m_worst + args.l))
-
-    return ((args.yp + args.wp * (m_best + args.l)) / (m_best + args.l),
-            (args.yp + args.wp * (m_worst + args.l)) / (m_worst + args.l))
-
+    return t_best, max(args.wp + args.yp/args.l, args.wc + args.yc/args.l)
 
 def plot_depends(args, xs, t_vec, t_lower_vec, t_higher):
     from matplotlib import pyplot as plt
