@@ -210,6 +210,26 @@ def t_bounds(args):
 
     return t_best, max(args.wp + args.yp/args.l, args.wc + args.yc/args.l)
 
+# Valid only for L > 1 and Kp = 1
+def latency_bound(args):
+    if args.algorithm == 'sleep':
+        h = math.floor((args.l * (args.wp - args.wc) + args.yp - args.yc)/args.yc) + 1
+        return ((h + 1) * args.yc - (args.l - 2) * args.wp +
+                (args.l + 2) * args.wc)
+
+    elif args.algorithm == 'notify':
+        # Fix this for Sc < (L-2)Wp
+        ss_lat = args.sc - (args.l - 2) * args.wp + args.kc * args.wc + args.nc + args.sp + args.wp + args.np + args.sc + args.wc
+        if args.wc < args.wp:
+            fp_lat = 0
+        else:
+            m = math.floor((args.sp + (args.kc - 1) * args.wp)/(args.wc - args.wc)) + 1
+            fp_lat = ((args.wc - args.wp) * m - args.sp + args.l * args.wc +
+                      (1 + math.floor((args.l - 1) / m)) * args.nc)
+
+        return max(ss_lat, fp_lat)
+
+
 def plot_depends(args, xs, t_vec, t_lower_vec, t_higher):
     from matplotlib import pyplot as plt
     plt.plot(xs, t_vec, 'o-', label='T_avg')
@@ -344,7 +364,10 @@ else:
         #print('pkt #%d --> latency %.2f' % (pktidx, latency))
         pktidx += 1
 
-    print('Worst case latency: %.2f' % worst_case_latency)
+    print('Worst case latency: %.2f, bound %.2f' % \
+          (worst_case_latency, latency_bound(args)))
+    if worst_case_latency - latency_bound(args) > 0.000001:
+        print('ERROR: worst case latency exceeds the bound')
 
     if not args.quiet:
         pcs.dump(worst_case_pktidx)
