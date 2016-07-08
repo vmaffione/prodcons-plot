@@ -357,6 +357,7 @@ else:
         elif latency > worst_case_latency:
             worst_case_latency = latency
             worst_case_pktidx = [pktidx]
+        #print('pkt #%d --> latency %.2f' % (pktidx, latency))
         pktidx += 1
 
     print('Worst case latency: %.2f' % worst_case_latency)

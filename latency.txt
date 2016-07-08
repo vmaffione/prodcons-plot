@@ -12,17 +12,14 @@ Notifiche:
         FC:
             m = 1: 2Wp + 2Np + Sc + Wc
             m > 1: 2Wp + Np  + Sc + Wc
+                not worse than SS
         FP: mWc - (Sp + mWp) + Nc(1 + floor((L-1)/m)) + LWc
         SS: Sc - (L-2)Wp + KcWc + Nc + Sp + Wp + Np + Sc + Wc
-        SCS:
+        SCS: not worse than SS
         SPS:
 
 Sleep:
     Idle system: Yp + Wp + Yc + Wc
     Saturated system:
-        FC: 2Wp + Yc + Wc
-        FP: Wp + LWc
-        LCS:
-            if Yp < threshold: 2Wp + Yc + Wc
-            if Yp > threshold: Yp + Wp + Yc + Wc
-        LPS:
+        Yc(h+1) - (L-2)Wp + (L+2)Wc
+            with h = floor((L(Wp-Wc) + Yp - Yc)/Yc) + 1
