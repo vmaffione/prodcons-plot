@@ -234,6 +234,9 @@ def t_prod(args, pcs):
 def t_cons(args, pcs):
     return args.wc + pcs.cons_sleeps * pcs.args.yc / pcs.pkts
 
+def energy(args, pcs):
+    return ((args.wc + args.wp) * pcs.pkts + (pcs.cons_sleeps + pcs.prod_sleeps) * args.ye) / pcs.pkts
+
 # Upper bound for t_prod (t_cons), which happens when producer and
 # consumer alternate
 def t_bounds(args):
@@ -329,6 +332,7 @@ argparser.add_argument('--wp', help = "Wp", type = float, default = 2.0)
 argparser.add_argument('--wc', help = "Wc", type = float, default = 1.0)
 argparser.add_argument('--yp', help = "Yp", type = float, default = 3.0)
 argparser.add_argument('--yc', help = "Yc", type = float, default = 5.0)
+argparser.add_argument('--ye', help = "Ye", type = float, default = 0.8)
 argparser.add_argument('--nc', help = "Nc", type = float, default = 3.0)
 argparser.add_argument('--np', help = "Np", type = float, default = 4.5)
 argparser.add_argument('--sc', help = "Sc", type = float, default = 2.1)
@@ -423,3 +427,4 @@ else:
     bounds = t_bounds(args)
     print('Time per packet %f (or %f), bounds (%f %f)' % \
             (t_prod(args, pcs), t_cons(args, pcs), bounds[0], bounds[1]))
+    print('Energy per packet %f' % (energy(args, pcs),))
