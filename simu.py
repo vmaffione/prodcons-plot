@@ -224,7 +224,7 @@ def latency_bound(args):
             fp_lat = 0
         else:
             m = math.floor((args.sp + (args.kc - 1) * args.wp)/(args.wc - args.wp)) + 1
-            fp_lat = ((args.wc - args.wp) * m - args.sp + args.l * args.wc +
+            fp_lat = (args.wp + (args.l + 1) * args.wc +
                       (1 + math.floor((args.l - 1) / m)) * args.nc)
 
         return max(ss_lat, fp_lat)
