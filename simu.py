@@ -223,7 +223,7 @@ def latency_bound(args):
         if args.wc < args.wp:
             fp_lat = 0
         else:
-            m = math.floor((args.sp + (args.kc - 1) * args.wp)/(args.wc - args.wc)) + 1
+            m = math.floor((args.sp + (args.kc - 1) * args.wp)/(args.wc - args.wp)) + 1
             fp_lat = ((args.wc - args.wp) * m - args.sp + args.l * args.wc +
                       (1 + math.floor((args.l - 1) / m)) * args.nc)
 
