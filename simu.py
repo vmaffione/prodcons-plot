@@ -218,13 +218,13 @@ def latency_bound(args):
                 (args.l + 2) * args.wc)
 
     elif args.algorithm == 'notify':
-        # Fix this for Sc < (L-2)Wp
-        ss_lat = args.sc - (args.l - 2) * args.wp + args.kc * args.wc + args.nc + args.sp + args.wp + args.np + args.sc + args.wc
+        ss_lat = (max(args.wp, args.sc - (args.l - 2) * args.wp) + args.kc * args.wc +
+                  args.nc + args.sp + args.wp + args.np + args.sc + args.wc)
         if args.wc < args.wp:
             fp_lat = 0
         else:
             m = math.floor((args.sp + (args.kc - 1) * args.wp)/(args.wc - args.wp)) + 1
-            fp_lat = (args.wp + (args.l + 1) * args.wc +
+            fp_lat = (args.wp + (args.l + args.kc) * args.wc +
                       (1 + math.floor((args.l - 1) / m)) * args.nc)
 
         return max(ss_lat, fp_lat)

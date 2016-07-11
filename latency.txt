@@ -13,10 +13,9 @@ Notifiche:
             m = 1: 2Wp + 2Np + Sc + Wc
             m > 1: 2Wp + Np  + Sc + Wc
                 not worse than SS
-        FP: mWc - (Sp + mWp) + Nc(1 + floor((L-1)/m)) + LWc
-        SS: Sc - (L-2)Wp + KcWc + Nc + Sp + Wp + Np + Sc + Wc
+        FP: Wp + (L+1)Wc + Nc(1 + floor((L-1)/m))
+        SS, SPS: max{Wp, Sc - (L-2)Wp} + KcWc + Nc + Sp + Wp + Np + Sc + Wc
         SCS: not worse than SS
-        SPS:
 
 Sleep:
     Idle system: Yp + Wp + Yc + Wc
