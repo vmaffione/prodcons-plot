@@ -4,7 +4,7 @@ Polling:
     Idle system: Wp + Wc
     Saturated system:
         Wc < Wp: 2Wp + Wc
-        Wc > Wp: 3Wc
+        Wc > Wp: (L+1)Wc
 
 Notifiche:
     Idle system: Wp + Np + Sc + Wc

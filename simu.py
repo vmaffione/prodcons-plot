@@ -55,7 +55,7 @@ class ProdConsState:
                 poly = plt.Polygon([[ev[0], y], [ev[0] + ev[2], y], [ev[0] + ev[2], y + size]], color = '#0080f0')
                 plt.gca().add_patch(poly)
             else:
-                color = 'k' if ev[1] in worst_case_pktidx else 'g'
+                color = 'k' if self.args.algorithm != 'poll' and ev[1] in worst_case_pktidx else 'g'
                 rectangle = plt.Rectangle((ev[0], y), ev[2], size, fc=color)
                 plt.gca().add_patch(rectangle)
 
@@ -76,7 +76,7 @@ class ProdConsState:
                 poly = plt.Polygon([[ev[0], y + size], [ev[0] + ev[2], y + size], [ev[0] + ev[2], y]], color = '#0080f0')
                 plt.gca().add_patch(poly)
             else:
-                color = 'k' if ev[1] in worst_case_pktidx else 'r'
+                color = 'k' if self.args.algorithm != 'poll' and ev[1] in worst_case_pktidx else 'r'
                 rectangle = plt.Rectangle((ev[0], y), ev[2], size, fc=color)
                 plt.gca().add_patch(rectangle)
 
@@ -163,6 +163,39 @@ class ProdConsState:
             t_next += self.args.nc
         self.future_push(t_next, ProdConsState.cons_ntfy_front)
 
+    # Simulation routines for polling
+    def prod_poll_front(self):
+        if self.qlen < self.args.l:
+            self.prod_events.append((self.t, self.pkt_prod, self.args.wp))
+            self.future_push(self.t + self.args.wp, ProdConsState.prod_poll_back)
+        else:
+            self.prod_active = False
+
+    def prod_poll_back(self):
+        self.qlen += 1
+        self.pkt_prod += 1
+        self.future_push(self.t, ProdConsState.prod_poll_front)
+        if not self.cons_active:
+            self.cons_active = True
+            self.future_push(self.t, ProdConsState.cons_poll_front)
+
+    def cons_poll_front(self):
+        if self.qlen > 0:
+            self.cons_events.append((self.t, self.pkt_cons, self.args.wc))
+            self.future_push(self.t + self.args.wc, ProdConsState.cons_poll_back)
+        else:
+            self.cons_active = False
+
+    def cons_poll_back(self):
+        self.qlen -= 1
+        self.pkt_cons += 1
+        self.future_push(self.t, ProdConsState.cons_poll_front)
+        self.pkts += 1
+        if not self.prod_active:
+            self.prod_active = True
+            self.future_push(self.t, ProdConsState.prod_poll_front)
+
+
 
 def simulate(args):
     pcs = ProdConsState(args)
@@ -173,6 +206,9 @@ def simulate(args):
     elif args.algorithm == 'notify':
         pcs.future_push(0, ProdConsState.prod_ntfy_front)
         pcs.future_push(args.cons_offset, ProdConsState.cons_ntfy_front)
+    elif args.algorithm == 'poll':
+        pcs.future_push(0, ProdConsState.prod_poll_front)
+        pcs.future_push(args.cons_offset, ProdConsState.cons_poll_front)
 
     cnt = 0
     while pcs.t <= args.time_max:
@@ -228,6 +264,9 @@ def latency_bound(args):
                       (1 + math.floor((args.l - 1) / m)) * args.nc)
 
         return max(ss_lat, fp_lat)
+
+    elif args.algorithm == 'poll':
+        return ((args.l + 1) * args.wc) if args.wp < args.wc else (2 * args.wp + args.wc)
 
 
 def service_latency(pcs, args):
@@ -302,7 +341,7 @@ argparser.add_argument('-q', '--quiet', help = "Compute only stats", action='sto
 argparser.add_argument('--xunits', help = "Wp/Wc units per line in the plot", type = int, default = 180)
 
 argparser.add_argument('-a', '--algorithm', help = "Algorithm",
-                       choices=['sleep', 'notify'], default = 'sleep')
+                       choices=['sleep', 'notify', 'poll'], default = 'sleep')
 
 argparser.add_argument('--depends', help = "Dependency on", choices=['yp', 'yc'])
 argparser.add_argument('--ymax', help = "max Yc or Yp when depends is specified",
