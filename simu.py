@@ -46,7 +46,7 @@ class ProdConsState:
                 y -= 10
             ev = (ev[0] - ofs, ev[1], ev[2])
             if ev[1] == 'z':
-                line = plt.Line2D((ev[0], ev[0] + ev[2]), (y + size/2, y + size/2), lw=2.5)
+                line = plt.Line2D((ev[0], ev[0] + ev[2]), (y + size/2, y + size/2), lw=4.5)
                 plt.gca().add_line(line)
             elif ev[1] == 'n':
                 poly = plt.Polygon([[ev[0], y], [ev[0], y + size], [ev[0] + ev[2], y]], color = 'y')
@@ -67,7 +67,7 @@ class ProdConsState:
                 y -= 10
             ev = (ev[0] - ofs, ev[1], ev[2])
             if ev[1] == 'z':
-                line = plt.Line2D((ev[0], ev[0] + ev[2]), (y + size/2, y + size/2), lw=2.5)
+                line = plt.Line2D((ev[0], ev[0] + ev[2]), (y + size/2, y + size/2), lw=4.5)
                 plt.gca().add_line(line)
             elif ev[1] == 'n':
                 poly = plt.Polygon([[ev[0], y], [ev[0], y + size], [ev[0] + ev[2], y + size]], color = 'y')
@@ -241,10 +241,10 @@ def energy(args, pcs):
 # consumer alternate
 def t_bounds(args):
     if args.wc < args.wp:
-        m = math.floor(((args.l-1) * args.wc)/(args.wp - args.wc))
+        m = math.floor(((args.l-1) * args.wc - args.wp)/(args.wp - args.wc)) + 1
         t_best = ((args.l + m) * args.wc + args.yc)/(args.l + m)
     else:
-        m = math.floor(((args.l-1) * args.wp)/(args.wc - args.wp))
+        m = math.floor(((args.l-1) * args.wp - args.wc)/(args.wc - args.wp)) + 1
         t_best = ((args.l + m) * args.wp + args.yp)/(args.l + m)
 
     return t_best, max(args.wp + args.yp/args.l, args.wc + args.yc/args.l)
