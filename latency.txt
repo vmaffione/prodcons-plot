@@ -20,5 +20,9 @@ Notifiche:
 Sleep:
     Idle system: Yp + Wp + Yc + Wc
     Saturated system:
+        Wp + hWp + Wp + Yc + Wc
+            with h = floor((Yc + LWc - (L-1)Wp)/Yp) + 1
+
+        (old)
         Yc(h+1) - (L-2)Wp + (L+2)Wc
             with h = floor((L(Wp-Wc) + Yp - Yc)/Yc) + 1

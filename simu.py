@@ -252,9 +252,8 @@ def t_bounds(args):
 # Valid only for L > 1 and Kp = 1
 def latency_bound(args):
     if args.algorithm == 'sleep':
-        h = math.floor((args.l * (args.wp - args.wc) + args.yp - args.yc)/args.yc) + 1
-        return ((h + 1) * args.yc - (args.l - 2) * args.wp +
-                (args.l + 2) * args.wc)
+        h = math.floor((args.yc + args.l * args.wc - (args.l-1) * args.wp)/args.yp) + 1
+        return 2 * args.wp + args.wc + args.yc + h * args.yp
 
     elif args.algorithm == 'notify':
         ss_lat = (max(args.wp, args.sc - (args.l - 2) * args.wp) + args.kc * args.wc +
