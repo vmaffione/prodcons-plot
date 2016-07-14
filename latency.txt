@@ -21,7 +21,7 @@ Sleep:
     Idle system: Yp + Wp + Yc + Wc
     Saturated system:
         Fast Consumer:
-            (2Wp - Wc) + Yc + Wc
+            2Wp + Yc + Wc
 
         Fast Producer:
             (L+1)Wc
