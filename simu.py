@@ -316,14 +316,15 @@ def service_latency(pcs, args):
     return worst_case_latency, worst_case_pktidx
 
 
-def plot_depends(args, xs, t_vec, t_lower_vec, t_higher):
+def plot_depends(args, xs, t_vec, t_lower_vec, t_higher_vec, energy_vec):
     from matplotlib import pyplot as plt
     plt.plot(xs, t_vec, 'o-', label='T_avg')
     plt.plot(xs, t_lower_vec, 'x-', label='T_lower')
     plt.plot(xs, t_higher_vec, 'x-', label='T_higher')
-    plt.ylabel('Average per-packet time')
+    plt.plot(xs, energy_vec, 'o-', label='Energy')
+    plt.ylabel('Average per-packet time / Energy')
     plt.xlabel(args.depends)
-    plt.title('How per-packet time depends from Yc/Yp')
+    plt.title('How per-packet time and energy depend from Yc/Yp')
     plt.grid(True)
     plt.legend(loc='upper left')
     plt.show()
@@ -402,6 +403,7 @@ if args.depends:
     t_vec = []
     t_lower_vec = []
     t_higher_vec = []
+    energy_vec = []
     incr = (args.ymax - args.ymin)/args.points
     x = args.ymin
     while x < args.ymax:
@@ -411,13 +413,14 @@ if args.depends:
             args.yc = x
         pcs = simulate(args)
         t_vec.append(t_prod(args, pcs))
+        energy_vec.append(energy(args, pcs))
         bounds = t_bounds(args)
         t_lower_vec.append(bounds[0])
         t_higher_vec.append(bounds[1])
         xs.append(x)
         x += incr
 
-    plot_depends(args, xs, t_vec, t_lower_vec, t_higher_vec)
+    plot_depends(args, xs, t_vec, t_lower_vec, t_higher_vec, energy_vec)
 
 else:
     args.time_max = max(mx * 100, args.time_max)
