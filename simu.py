@@ -27,11 +27,6 @@ class ProdConsState:
         self.cons_active = False
         self.prod_active = True
 
-        self.cons_burst_cnt = 0
-        self.prod_burst_cnt = 0
-        self.cons_bursts = dict()
-        self.prod_bursts = dict()
-
     def dump(self, worst_case_pktidx):
         from matplotlib import pyplot as plt
 
@@ -105,17 +100,11 @@ class ProdConsState:
             self.prod_events.append((self.t, 'z', self.args.yp))
             self.future_push(self.t + self.args.yp, ProdConsState.prod_sleep_front)
             self.prod_sleeps += 1
-            if self.prod_burst_cnt not in self.prod_bursts:
-                self.prod_bursts[self.prod_burst_cnt] =  1
-            else:
-                self.prod_bursts[self.prod_burst_cnt] += 1
-            self.prod_burst_cnt = 0
 
     def prod_sleep_back(self):
         self.qlen += 1
         self.pkt_prod += 1
         self.future_push(self.t, ProdConsState.prod_sleep_front)
-        self.prod_burst_cnt += 1
 
     def cons_sleep_front(self):
         if self.qlen > 0:
@@ -125,18 +114,12 @@ class ProdConsState:
             self.cons_events.append((self.t, 'z', self.args.yc))
             self.future_push(self.t + self.args.yc, ProdConsState.cons_sleep_front)
             self.cons_sleeps += 1
-            if self.cons_burst_cnt not in self.cons_bursts:
-                self.cons_bursts[self.cons_burst_cnt] =  1
-            else:
-                self.cons_bursts[self.cons_burst_cnt] += 1
-            self.cons_burst_cnt = 0
 
     def cons_sleep_back(self):
         self.qlen -= 1
         self.pkt_cons += 1
         self.future_push(self.t, ProdConsState.cons_sleep_front)
         self.pkts += 1
-        self.cons_burst_cnt += 1
 
     # Simulation routines for notifications
     def prod_ntfy_front(self):
@@ -461,6 +444,3 @@ else:
     print('Time per packet %f (or %f), bounds (%f %f)' % \
             (t_prod(args, pcs), t_cons(args, pcs), bounds[0], bounds[1]))
     print('Energy per packet %f' % (energy(args, pcs),))
-    if args.algorithm == 'sleep':
-        print("Producer bursts: %s" % (pcs.prod_bursts))
-        print("Consumer bursts: %s" % (pcs.cons_bursts))
