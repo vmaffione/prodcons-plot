@@ -32,8 +32,6 @@ class ProdConsState:
 
         xunit = min(self.args.wp, self.args.wc)
 
-        max_time = max(self.prod_events[-1][0] + self.prod_events[-1][2],
-                       self.cons_events[-1][0] + self.cons_events[-1][2])
         fig = plt.figure()
         ax = plt.axes(xlim=(0, self.args.xunits * xunit), ylim=(0, 100))
 
@@ -199,6 +197,27 @@ class ProdConsState:
             self.prod_active = True
             self.future_push(self.t, ProdConsState.prod_poll_front)
 
+    def future_print(self, fut):
+        if fut[1] in [ProdConsState.prod_sleep_front,
+                      ProdConsState.prod_ntfy_front,
+                      ProdConsState.prod_poll_front,
+                      ProdConsState.prod_sleep_back,
+                      ProdConsState.prod_ntfy_back,
+                      ProdConsState.prod_poll_back]:
+            actor = 'P'
+        else:
+            actor = 'C'
+        if fut[1] in [ProdConsState.prod_sleep_front,
+                      ProdConsState.prod_ntfy_front,
+                      ProdConsState.prod_poll_front,
+                      ProdConsState.cons_sleep_front,
+                      ProdConsState.cons_ntfy_front,
+                      ProdConsState.cons_poll_front]:
+            action = 'starts'
+        else:
+            action = 'ends'
+        print('%s message %s at %s' % (actor, action, fut[0]))
+
 
 
 def simulate(args):
@@ -221,6 +240,7 @@ def simulate(args):
             break
 
         nxt = pcs.future.pop(0)
+        #pcs.future_print(nxt)
         pcs.t = nxt[0]
         if nxt[1] != None:
             nxt[1](pcs)
@@ -389,12 +409,11 @@ print('')
 mx = max(args.wp, args.wc, args.yp, args.yc,
          args.np, args.nc, args.sp, args.sc)
 
+# Check that simulation length is acceptable
+args.time_max = max(mx * 200, args.time_max)
+print('Simulation length: %d' % args.time_max)
+
 if args.depends:
-
-    # Check that simulation length is acceptable
-    args.time_max = max(mx * 200, args.time_max)
-    print('Simulation length: %d' % args.time_max)
-
     # Start from the region where slow-party sleep happens
     if args.wc < args.wp:
         args.ymin = (args.l - 1) * args.wp - args.wc
@@ -431,8 +450,6 @@ if args.depends:
     plot_depends(args, xs, t_vec, t_lower_vec, t_higher_vec, energy_vec)
 
 else:
-    args.time_max = max(mx * 200, args.time_max)
-
     pcs = simulate(args)
 
     worst_case_latency, worst_case_pktidx = service_latency(pcs, args)
