@@ -44,6 +44,8 @@ class ProdConsState:
             if ev[0] + ev[2] - ofs > self.args.xunits * xunit:
                 ofs += self.args.xunits * xunit
                 y -= 10
+                if y < 0:
+                    break
             ev = (ev[0] - ofs, ev[1], ev[2])
             if ev[1] == 'z':
                 line = plt.Line2D((ev[0], ev[0] + ev[2]), (y + size/2, y + size/2), lw=4.5)
@@ -65,6 +67,8 @@ class ProdConsState:
             if ev[0] + ev[2] - ofs > self.args.xunits * xunit:
                 ofs += self.args.xunits * xunit
                 y -= 10
+                if y < 0:
+                    break
             ev = (ev[0] - ofs, ev[1], ev[2])
             if ev[1] == 'z':
                 line = plt.Line2D((ev[0], ev[0] + ev[2]), (y + size/2, y + size/2), lw=4.5)
