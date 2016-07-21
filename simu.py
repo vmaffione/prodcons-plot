@@ -238,7 +238,7 @@ def energy(args, pcs):
     return ((args.wc + args.wp) * pcs.pkts + (pcs.cons_sleeps + pcs.prod_sleeps) * args.ye) / pcs.pkts
 
 # Upper bound for t_prod (t_cons), which happens when producer and
-# consumer alternate
+# consumer alternate sleeping
 def t_bounds(args):
     if args.wc < args.wp:
         m = math.floor(((args.l-1) * args.wc - args.wp)/(args.wp - args.wc)) + 1
@@ -388,7 +388,7 @@ mx = max(args.wp, args.wc, args.yp, args.yc,
 if args.depends:
 
     # Check that simulation length is acceptable
-    args.time_max = max(mx * 1000, args.time_max)
+    args.time_max = max(mx * 200, args.time_max)
     print('Simulation length: %d' % args.time_max)
 
     # Start from the region where slow-party sleep happens
@@ -396,9 +396,12 @@ if args.depends:
         args.ymin = (args.l - 1) * args.wp - args.wc
     else:
         args.ymin = (args.l - 1) * args.wc - args.wp
-    args.ymin -= 10 # just to show some more
+    args.ymin -= 3 * mx  # just to show some more
     if args.ymin < 1:
         args.ymin = 1
+
+    if args.ymin > args.ymax:
+        args.ymax = args.ymin + args.points * min(math.floor(args.wc), math.floor(args.wp))
 
     xs = []
     t_vec = []
@@ -424,7 +427,7 @@ if args.depends:
     plot_depends(args, xs, t_vec, t_lower_vec, t_higher_vec, energy_vec)
 
 else:
-    args.time_max = max(mx * 100, args.time_max)
+    args.time_max = max(mx * 200, args.time_max)
 
     pcs = simulate(args)
 
@@ -441,6 +444,6 @@ else:
     print('Producer sleeps   %d' % pcs.prod_sleeps)
     print('Consumer sleeps   %d' % pcs.cons_sleeps)
     bounds = t_bounds(args)
-    print('Time per packet %f (or %f), bounds (%f %f)' % \
+    print('Time per packet %f (or %f), sleep bounds (%f %f)' % \
             (t_prod(args, pcs), t_cons(args, pcs), bounds[0], bounds[1]))
     print('Energy per packet %f' % (energy(args, pcs),))
