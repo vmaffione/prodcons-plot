@@ -390,6 +390,13 @@ argparser.add_argument('--points', help = "number of Yp or Yc points to test whe
 
 args = argparser.parse_args()
 
+if args.depends:
+    if args.depends == 'yp':
+        if args.yc < args.ye:
+            args.yc = args.ye
+    else:
+        if args.yp < args.ye:
+            args.yp = args.ye
 
 print('Parameters:')
 print('    L  = %d' % args.l)
@@ -420,8 +427,8 @@ if args.depends:
     else:
         args.ymin = (args.l - 1) * args.wc - args.wp
     args.ymin -= 3 * mx  # just to show some more
-    if args.ymin < 1:
-        args.ymin = 1
+    if args.ymin < args.ye:
+        args.ymin = args.ye
 
     if args.ymin > args.ymax:
         args.ymax = args.ymin + args.points * min(math.floor(args.wc), math.floor(args.wp))
