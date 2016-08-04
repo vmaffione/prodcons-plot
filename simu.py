@@ -452,6 +452,7 @@ if args.depends:
         t_lower_vec.append(bounds[0])
         t_higher_vec.append(bounds[1])
         xs.append(x)
+        #print("%.2f %.2f %.2f" % (x, t_prod(args, pcs), energy(args, pcs)))
         x += incr
 
     plot_depends(args, xs, t_vec, t_lower_vec, t_higher_vec, energy_vec)
