@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 
 import argparse
-import re
 import math
+import time
+import re
 
 
 class ProdConsState:
@@ -221,6 +222,9 @@ class ProdConsState:
 
 
 def simulate(args):
+
+    end = time.time() + args.time_max
+
     pcs = ProdConsState(args)
     if args.algorithm == 'sleep':
         pcs.cons_events.append((0, 'z', args.cons_offset))
@@ -234,7 +238,7 @@ def simulate(args):
         pcs.future_push(args.cons_offset, ProdConsState.cons_poll_front)
 
     cnt = 0
-    while pcs.t <= args.time_max:
+    while time.time() < end:
         if len(pcs.future) == 0:
             print('Out of events')
             break
@@ -364,13 +368,13 @@ epilog = "2016 Vincenzo Maffione <v.maffione@gmail.com>"
 argparser = argparse.ArgumentParser(description = description,
                                     epilog = epilog)
 argparser.add_argument('-t', '--time-max',
-                       help = "Max simulation time", type = int,
-                       default = 195)
+                       help = "Max simulation time for each run",
+                       type = float, default = 0.5)
 argparser.add_argument('--wp', help = "Wp", type = float, default = 2.0)
 argparser.add_argument('--wc', help = "Wc", type = float, default = 1.0)
-argparser.add_argument('--yp', help = "Yp", type = float, default = 3.0)
+argparser.add_argument('--yp', help = "Yp", type = float, default = 5.0)
 argparser.add_argument('--yc', help = "Yc", type = float, default = 5.0)
-argparser.add_argument('--ye', help = "Ye", type = float, default = 0.8)
+argparser.add_argument('--ye', help = "Ye", type = float, default = 2.5)
 argparser.add_argument('--nc', help = "Nc", type = float, default = 3.0)
 argparser.add_argument('--np', help = "Np", type = float, default = 4.5)
 argparser.add_argument('--sc', help = "Sc", type = float, default = 2.1)
@@ -388,7 +392,7 @@ argparser.add_argument('-a', '--algorithm', help = "Algorithm",
 
 argparser.add_argument('--depends', help = "Dependency on", choices=['yp', 'yc', 'y'])
 argparser.add_argument('--ymax', help = "max Yc or Yp when depends is specified",
-                       type = int, default = 100)
+                       type = float, default = 100.0)
 argparser.add_argument('--points', help = "number of Yp or Yc points to test when depends is specified",
                        type = int, default = 150)
 
@@ -416,30 +420,15 @@ print('')
 mx = max(args.wp, args.wc, args.yp, args.yc,
          args.np, args.nc, args.sp, args.sc)
 
-# Check that simulation length is acceptable
-args.time_max = max(mx * 200, args.time_max)
-print('Simulation length: %d' % args.time_max)
-
 if args.depends:
-    # Start from the region where slow-party sleep happens
-    if args.wc < args.wp:
-        args.ymin = (args.l - 1) * args.wp - args.wc
-    else:
-        args.ymin = (args.l - 1) * args.wc - args.wp
-    args.ymin -= 3 * mx  # just to show some more
-    if args.ymin < args.ye:
-        args.ymin = args.ye
-
-    if args.ymin > args.ymax:
-        args.ymax = args.ymin + args.points * min(math.floor(args.wc), math.floor(args.wp))
-
+    print("%11s %11s %11s" % (args.depends, 'time', 'energy'))
     xs = []
     t_vec = []
     t_lower_vec = []
     t_higher_vec = []
     energy_vec = []
-    incr = (args.ymax - args.ymin)/args.points
-    x = args.ymin
+    incr = (args.ymax - args.ye)/args.points
+    x = args.ye
     while x < args.ymax:
         if args.depends == 'yp':
             args.yp = x
@@ -455,7 +444,7 @@ if args.depends:
         t_lower_vec.append(bounds[0])
         t_higher_vec.append(bounds[1])
         xs.append(x)
-        print("%.2f %.2f %.2f" % (x, t_prod(args, pcs), energy(args, pcs)))
+        print("%11.2f %11.2f %11.2f" % (x, t_prod(args, pcs), energy(args, pcs)))
         x += incr
 
     plot_depends(args, xs, t_vec, t_lower_vec, t_higher_vec, energy_vec)
