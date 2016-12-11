@@ -252,13 +252,17 @@ def simulate(args):
 
 # Average per-packet time as computed by the producer
 def t_prod(args, pcs):
-    return args.wp + pcs.prod_sleeps * pcs.args.yp / pcs.pkts
+    slc = 0 if pcs.pkts == 0 else pcs.prod_sleeps * pcs.args.yp / pcs.pkts
+    return args.wp + slc
 
 # Average per-packet time as computed by the consumer
 def t_cons(args, pcs):
-    return args.wc + pcs.cons_sleeps * pcs.args.yc / pcs.pkts
+    slc = 0 if pcs.pkts == 0 else pcs.cons_sleeps * pcs.args.yc / pcs.pkts
+    return args.wc + slc
 
 def energy(args, pcs):
+    if pcs.pkts == 0:
+        return 0
     return ((args.wc + args.wp) * pcs.pkts + (pcs.cons_sleeps + pcs.prod_sleeps) * args.ye) / pcs.pkts
 
 # Upper bound for t_prod (t_cons), which happens when producer and
@@ -382,7 +386,7 @@ argparser.add_argument('--one-latency', help = "Show only one worst case latency
 argparser.add_argument('-a', '--algorithm', help = "Algorithm",
                        choices=['sleep', 'notify', 'poll'], default = 'sleep')
 
-argparser.add_argument('--depends', help = "Dependency on", choices=['yp', 'yc'])
+argparser.add_argument('--depends', help = "Dependency on", choices=['yp', 'yc', 'y'])
 argparser.add_argument('--ymax', help = "max Yc or Yp when depends is specified",
                        type = int, default = 100)
 argparser.add_argument('--points', help = "number of Yp or Yc points to test when depends is specified",
@@ -391,12 +395,8 @@ argparser.add_argument('--points', help = "number of Yp or Yc points to test whe
 args = argparser.parse_args()
 
 if args.depends:
-    if args.depends == 'yp':
-        if args.yc < args.ye:
-            args.yc = args.ye
-    else:
-        if args.yp < args.ye:
-            args.yp = args.ye
+    args.yc = max(args.yc, args.ye)
+    args.yp = max(args.yp, args.ye)
 
 print('Parameters:')
 print('    L  = %d' % args.l)
@@ -443,8 +443,11 @@ if args.depends:
     while x < args.ymax:
         if args.depends == 'yp':
             args.yp = x
-        else:
+        elif args.depends == 'yc':
             args.yc = x
+        else:
+            args.yp = args.yc = x
+
         pcs = simulate(args)
         t_vec.append(t_prod(args, pcs))
         energy_vec.append(energy(args, pcs))
@@ -452,7 +455,7 @@ if args.depends:
         t_lower_vec.append(bounds[0])
         t_higher_vec.append(bounds[1])
         xs.append(x)
-        #print("%.2f %.2f %.2f" % (x, t_prod(args, pcs), energy(args, pcs)))
+        print("%.2f %.2f %.2f" % (x, t_prod(args, pcs), energy(args, pcs)))
         x += incr
 
     plot_depends(args, xs, t_vec, t_lower_vec, t_higher_vec, energy_vec)
