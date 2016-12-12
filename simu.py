@@ -259,15 +259,26 @@ def t_prod(args, pcs):
     slc = 0 if pcs.pkts == 0 else pcs.prod_sleeps * pcs.args.yp / pcs.pkts
     return args.wp + slc
 
+
 # Average per-packet time as computed by the consumer
 def t_cons(args, pcs):
     slc = 0 if pcs.pkts == 0 else pcs.cons_sleeps * pcs.args.yc / pcs.pkts
     return args.wc + slc
 
+
+# Average per-packet energy
 def energy(args, pcs):
     if pcs.pkts == 0:
         return 0
     return ((args.wc + args.wp) * pcs.pkts + (pcs.cons_sleeps + pcs.prod_sleeps) * args.ye) / pcs.pkts
+
+
+# Average batch
+def batch(args, pcs):
+    if pcs.prod_sleeps + pcs.cons_sleeps == 0:
+        return 0
+    return pcs.pkts / (pcs.prod_sleeps + pcs.cons_sleeps)
+
 
 # Upper bound for t_prod (t_cons), which happens when producer and
 # consumer alternate sleeping
@@ -421,7 +432,7 @@ mx = max(args.wp, args.wc, args.yp, args.yc,
          args.np, args.nc, args.sp, args.sc)
 
 if args.depends:
-    print("%11s %11s %11s" % (args.depends, 'time', 'energy'))
+    print("%11s %11s %11s %11s" % (args.depends, 'time', 'energy', 'batch'))
     xs = []
     t_vec = []
     t_lower_vec = []
@@ -444,7 +455,8 @@ if args.depends:
         t_lower_vec.append(bounds[0])
         t_higher_vec.append(bounds[1])
         xs.append(x)
-        print("%11.2f %11.2f %11.2f" % (x, t_prod(args, pcs), energy(args, pcs)))
+        print("%11.2f %11.2f %11.2f %11.2f" % (x, t_prod(args, pcs),
+              energy(args, pcs), batch(args, pcs)))
         x += incr
 
     plot_depends(args, xs, t_vec, t_lower_vec, t_higher_vec, energy_vec)
