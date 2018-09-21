@@ -396,7 +396,7 @@ argparser.add_argument('-l', help = "Queue length", type = int, default = 3)
 argparser.add_argument('--cons-offset', help = "Consumer start delay", type = float, default = 0.0)
 argparser.add_argument('-q', '--quiet', help = "Compute only stats", action='store_true')
 argparser.add_argument('--xunits', help = "Wp/Wc units per line in the plot", type = int, default = 180)
-argparser.add_argument('--one-latency', help = "Show only one worst case latency", action='store_true')
+argparser.add_argument('--all-worst-latencies', help = "Show all the worst case latencies", action='store_true')
 
 argparser.add_argument('-a', '--algorithm', help = "Algorithm",
                        choices=['sleep', 'notify', 'poll'], default = 'sleep')
@@ -469,7 +469,7 @@ else:
           (worst_case_latency, latency_bound(args)))
 
     if not args.quiet:
-        if args.one_latency:
+        if not args.all_worst_latencies:
             worst_case_pktidx = [worst_case_pktidx[min(2, len(worst_case_pktidx)-1)]]
         pcs.dump(worst_case_pktidx)
 
